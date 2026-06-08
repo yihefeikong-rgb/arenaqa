@@ -1,6 +1,6 @@
 // ============================================================
-// ColumnLayout — 多列回答区（可拖拽布局）
-// 对齐设计系统规范 v1.0
+// ColumnLayout — 多列回答区 v2.0
+// 深色主题优化
 // ============================================================
 
 'use client';
@@ -10,11 +10,11 @@ import { useChatStore } from '@/stores/chat-store';
 import { AnswerColumn } from './AnswerColumn';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-// 模型标识映射 — SVG 图标，无 emoji
+// 模型标识映射
 const MODEL_BADGE: Record<string, { icon: React.ReactNode; color: string }> = {
   deepseek: {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4Z" />
         <path d="M16 14v2a4 4 0 0 1-8 0v-2" />
         <path d="M8 10h8" />
@@ -25,7 +25,7 @@ const MODEL_BADGE: Record<string, { icon: React.ReactNode; color: string }> = {
   },
   qwen: {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <path d="M8 14s1.5 2 4 2 4-2 4-2" />
         <line x1="9" y1="9" x2="9.01" y2="9" />
@@ -36,7 +36,7 @@ const MODEL_BADGE: Record<string, { icon: React.ReactNode; color: string }> = {
   },
   claude: {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 2L2 7l10 5 10-5-10-5Z" />
         <path d="M2 17l10 5 10-5" />
         <path d="M2 12l10 5 10-5" />
@@ -46,7 +46,7 @@ const MODEL_BADGE: Record<string, { icon: React.ReactNode; color: string }> = {
   },
   gemini: {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
     ),
@@ -58,23 +58,22 @@ export function ColumnLayout() {
   const { answers, status } = useChatStore();
   const modelNames = Object.keys(answers);
 
-  // 空状态
   if (modelNames.length === 0) {
     return (
       <EmptyState
         icon={
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             <line x1="9" y1="10" x2="15" y2="10" />
           </svg>
         }
         title="等待你的第一个问题"
-        description="左侧选择模型，输入问题后点击发送。各模型的回答将在独立的列中实时流式显示。"
+        description="选择模型，输入问题后点击发送，各模型的回答将在此并排展示。"
       />
     );
   }
 
-  const panels = modelNames.map((name, i) => (
+  const panels = modelNames.map((name) => (
     <Panel key={name} defaultSize={100 / modelNames.length} minSize={20}>
       <AnswerColumn
         answer={answers[name]}
@@ -87,7 +86,9 @@ export function ColumnLayout() {
     if (i === 0) return [panel];
     return [
       <PanelResizeHandle key={`handle-${i}`}>
-        <div className="w-[3px] h-full bg-transparent hover:bg-blue-500/30 active:bg-blue-500/50 cursor-col-resize transition-colors" />
+        <div className="w-[3px] h-full flex items-center justify-center group cursor-col-resize">
+          <div className="w-[1px] h-8 rounded-full bg-[var(--color-divider)] group-hover:bg-[var(--color-primary)] group-hover:h-12 transition-all duration-200" />
+        </div>
       </PanelResizeHandle>,
       panel,
     ];
