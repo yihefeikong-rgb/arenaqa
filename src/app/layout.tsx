@@ -6,6 +6,10 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
+// 启动时初始化 Provider（从环境变量注册可用的 AI 模型）
+import { initializeProviders } from '@/lib/provider-registry';
+initializeProviders();
+
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],

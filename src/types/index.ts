@@ -105,6 +105,7 @@ export interface ChatState {
   answers: Record<string, AnswerState>;
   judgeResult?: JudgeEvent;
   fusionResult?: FusionEvent;
+  judgeError?: string;
   taskId?: string;
 }
 

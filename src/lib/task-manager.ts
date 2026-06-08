@@ -5,6 +5,8 @@
 import { randomUUID } from 'crypto';
 import { BaseProvider } from './providers/base';
 import { sseManager } from './sse-manager';
+import { runJudge } from './judge';
+import { runFusion } from './fusion';
 import type { ChatRequest } from '@/types';
 
 interface RunningTask {
@@ -12,6 +14,9 @@ interface RunningTask {
   prompt: string;
   models: string[];
   controllers: Map<string, AbortController>;
+  answers: Map<string, string>;  // model → accumulated text
+  completedModels: Set<string>;
+  failedModels: Set<string>;
   startTime: number;
   completed: boolean;
 }
@@ -37,14 +42,18 @@ class TaskManager {
       prompt: req.prompt,
       models: req.models,
       controllers: new Map(),
+      answers: new Map(),
+      completedModels: new Set(),
+      failedModels: new Set(),
       startTime,
       completed: false,
     };
     this.tasks.set(taskId, task);
 
-    // 启动所有模型（并发送到各自 provider）
+    // 并发启动所有模型
     const promises = req.models.map((model) =>
       this.runModel(task, model).catch((err) => {
+        task.failedModels.add(model);
         sseManager.publish(taskId, 'error', {
           model,
           error: err.message,
@@ -53,13 +62,12 @@ class TaskManager {
       })
     );
 
-    // 等所有模型完成
+    // 全部完成后触发评分+融合
     Promise.allSettled(promises).then(async () => {
       const elapsed = Date.now() - startTime;
 
       // 检查是否全失败
-      const errors = task.controllers.size === 0; // 没有成功启动的
-      if (errors) {
+      if (task.completedModels.size === 0) {
         sseManager.publish(taskId, 'complete', {
           taskId,
           totalLatencyMs: elapsed,
@@ -69,15 +77,39 @@ class TaskManager {
         return;
       }
 
-      // TODO: 调用裁判评分 + 融合（Phase 2）
-      // await this.runJudge(taskId);
-      // await this.runFusion(taskId);
+      // Phase 2: 裁判评分
+      try {
+        const answersArr = req.models
+          .filter((m) => task.completedModels.has(m))
+          .map((m) => ({
+            model: m,
+            content: task.answers.get(m) ?? '',
+          }));
+
+        const judgeResult = await runJudge(taskId, req.prompt, answersArr);
+        sseManager.publish(taskId, 'judge', judgeResult);
+
+        // Phase 2: 融合
+        try {
+          const fusionResult = await runFusion(taskId, req.prompt, answersArr);
+          sseManager.publish(taskId, 'fusion', fusionResult);
+        } catch (fusionErr) {
+          sseManager.publish(taskId, 'judge_error', {
+            error: fusionErr instanceof Error ? fusionErr.message : 'Fusion failed',
+          });
+        }
+      } catch (judgeErr) {
+        sseManager.publish(taskId, 'judge_error', {
+          error: judgeErr instanceof Error ? judgeErr.message : 'Judge failed',
+        });
+      }
 
       sseManager.publish(taskId, 'complete', {
         taskId,
-        totalLatencyMs: elapsed,
+        totalLatencyMs: Date.now() - startTime,
       });
       sseManager.complete(taskId);
+      task.completed = true;
     });
 
     return taskId;
@@ -92,7 +124,6 @@ class TaskManager {
     const controller = new AbortController();
     task.controllers.set(modelName, controller);
 
-    // 超时控制
     const timeout = setTimeout(() => {
       controller.abort();
       sseManager.publish(task.taskId, 'error', {
@@ -104,10 +135,12 @@ class TaskManager {
 
     let index = 0;
     let totalChars = 0;
+    let accumulated = '';
     const modelStart = Date.now();
 
     try {
       for await (const chunk of provider.stream(task.prompt, controller.signal)) {
+        accumulated += chunk;
         sseManager.publish(task.taskId, 'chunk', {
           model: modelName,
           content: chunk,
@@ -117,6 +150,9 @@ class TaskManager {
       }
 
       clearTimeout(timeout);
+      task.answers.set(modelName, accumulated);
+      task.completedModels.add(modelName);
+
       sseManager.publish(task.taskId, 'done', {
         model: modelName,
         latencyMs: Date.now() - modelStart,

@@ -12,6 +12,7 @@ interface ChatStore extends ChatState {
   markDone: (model: string, latencyMs: number) => void;
   markError: (model: string, error: string) => void;
   setJudgeResult: (result: JudgeEvent) => void;
+  setJudgeError: (error: string) => void;
   setFusionResult: (result: FusionEvent) => void;
   setComplete: () => void;
   reset: () => void;
@@ -21,6 +22,7 @@ const initialState: ChatState = {
   status: 'idle',
   prompt: '',
   answers: {},
+  judgeError: undefined,
 };
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -78,6 +80,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       eventSource.addEventListener('judge', (e: MessageEvent) => {
         const data = JSON.parse(e.data);
         get().setJudgeResult(data);
+      });
+
+      eventSource.addEventListener('judge_error', (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data);
+          get().setJudgeError(data.error || '评分失败');
+        } catch {
+          get().setJudgeError('评分异常');
+        }
       });
 
       eventSource.addEventListener('fusion', (e: MessageEvent) => {
@@ -146,7 +157,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       },
     })),
 
-  setJudgeResult: (result) => set({ judgeResult: result, status: 'judging' }),
+  setJudgeResult: (result) => set({ judgeResult: result, status: 'judging', judgeError: undefined }),
+
+  setJudgeError: (error) => set({ judgeError: error, status: 'complete' }),
 
   setFusionResult: (result) => set({ fusionResult: result, status: 'fusing' }),
 

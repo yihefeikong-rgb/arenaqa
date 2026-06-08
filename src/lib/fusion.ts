@@ -1,50 +1,142 @@
 // ============================================================
-// 融合引擎 — 纠错 + 综合答案生成
-// TODO: Phase 2 实现
+// 融合引擎 — 多模型回答综合 + 分歧标注
+// 调用裁判模型（GPT-4o）提取共识、标注分歧、生成综合答案
 // ============================================================
 
+import { generateText } from 'ai';
+import type { LanguageModelV1 } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import type { FusionEvent, Divergence } from '@/types';
 
+/**
+ * 运行 AI 融合
+ * 向裁判模型发送 prompt + 所有回答，生成融合答案
+ */
 export async function runFusion(
   _taskId: string,
-  _prompt: string,
-  _answers: Array<{ model: string; content: string }>
+  prompt: string,
+  answers: Array<{ model: string; content: string }>
 ): Promise<FusionEvent> {
-  // 步骤：
-  // 1. 收集所有回答
-  // 2. 调用裁判模型做融合
-  // 3. 提取共识点、分歧点
-  // 4. 生成综合答案
-  // 5. 返回 FusionEvent
+  // 如果没有 API Key 或只有一个模型，跳过融合
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      consensus: ['融合引擎需要配置 OPENAI_API_KEY'],
+      divergences: [],
+      synthesized: answers.map((a) => `## ${a.model}\n${a.content}`).join('\n\n---\n\n'),
+    };
+  }
 
-  return {
-    consensus: ['融合引擎尚未实现'],
-    divergences: [],
-    synthesized: '# 综合答案\n\n融合生成功能尚未实现，将在 Phase 2 完成。',
-  };
+  if (answers.length <= 1) {
+    return {
+      consensus: ['仅有一个模型回答，无需融合'],
+      divergences: [],
+      synthesized: answers[0]?.content ?? '无回答',
+    };
+  }
+
+  try {
+    const judgeModel = process.env.JUDGE_MODEL ?? 'gpt-4o';
+    const client = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: process.env.OPENAI_BASE_URL,
+    });
+
+    const fusionPrompt = buildFusionPrompt(prompt, answers);
+
+    const result = await generateText({
+      model: client(judgeModel) as unknown as LanguageModelV1,
+      prompt: fusionPrompt,
+      temperature: 0.2,
+      maxTokens: 4096,
+    });
+
+    return parseFusionResponse(result.text, answers);
+  } catch {
+    // 融合失败，降级为简单拼接
+    return {
+      consensus: ['融合引擎调用失败'],
+      divergences: [],
+      synthesized: answers.map((a) => `## ${a.model}\n${a.content}`).join('\n\n---\n\n'),
+    };
+  }
 }
 
 /**
- * 融合 prompt 模板
+ * 构造融合 prompt
  */
-export function buildFusionPrompt(prompt: string, answers: Array<{ model: string; content: string }>): string {
+export function buildFusionPrompt(
+  userPrompt: string,
+  answers: Array<{ model: string; content: string }>
+): string {
   return `你是一个 AI 回答整合专家。同一个问题有多个 AI 模型给出了回答。
 
 ## 用户问题
-${prompt}
+${userPrompt}
 
 ## 模型回答
 ${answers.map((a) => `### ${a.model}\n${a.content}`).join('\n\n')}
 
 ## 任务
-第一步：提取共识 — 列出所有回答中都达成一致的要点
-第二步：标注分歧 — 列出各模型回答存在明显分歧的观点
-第三步：生成综合答案 — 基于以上分析，生成一份完整、好读的综合答案。共识部分直接纳入，分歧部分明确标注。
+1. **提取共识**：列出所有回答中都达成一致的要点
+2. **标注分歧**：列出各模型回答存在明显分歧的观点（如果存在的话）
+3. **生成综合答案**：基于以上分析，生成一份完整、好读的综合答案。
+   - 共识部分直接纳入
+   - 分歧部分明确标注各个模型的不同立场
+   - 严禁凭空添加任何原始回答中不存在的观点
 
 ## 输出格式
+请严格输出 JSON，不要包含其他内容：
 {
   "consensus": ["共识点1", "共识点2"],
-  "divergences": [{"topic": "分歧主题", "positions": {"模型A": "...", "模型B": "..."}}],
+  "divergences": [
+    {
+      "topic": "分歧主题",
+      "positions": {
+        "模型A": "其立场",
+        "模型B": "其立场"
+      }
+    }
+  ],
   "synthesized": "综合答案全文（Markdown 格式）"
-}`;
+}
+`;
+}
+
+/**
+ * 解析融合 JSON 响应
+ */
+function parseFusionResponse(
+  text: string,
+  answers: Array<{ model: string; content: string }>
+): FusionEvent {
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch?.[0] ?? text;
+    const parsed = JSON.parse(jsonStr);
+
+    return {
+      consensus: Array.isArray(parsed.consensus) ? parsed.consensus : ['未能提取共识'],
+      divergences: Array.isArray(parsed.divergences)
+        ? parsed.divergences.map((d: Record<string, unknown>) => ({
+            topic: String(d.topic ?? ''),
+            positions: Object.fromEntries(
+              Object.entries(d.positions ?? {}).map(([k, v]) => [k, String(v)])
+            ),
+          }))
+        : [],
+      synthesized: String(parsed.synthesized ?? ''),
+    };
+  } catch {
+    // 降级：简单拼接
+    const divergences: Divergence[] = [];
+    const shortContents = answers.slice(0, Math.min(answers.length, 3));
+
+    return {
+      consensus: ['融合解析失败，以下为原始回答'],
+      divergences,
+      synthesized: shortContents
+        .map((a) => `## ${a.model}\n\n${a.content}`)
+        .join('\n\n---\n\n'),
+    };
+  }
 }

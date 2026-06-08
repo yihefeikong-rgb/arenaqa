@@ -1,5 +1,5 @@
 // ============================================================
-// SidePanel — 右侧摘要面板（评分 + 融合 + 历史）
+// SidePanel — 右侧摘要面板（评分 + 融合）
 // ============================================================
 
 'use client';
@@ -7,7 +7,7 @@
 import { useChatStore } from '@/stores/chat-store';
 
 export function SidePanel() {
-  const { status, judgeResult, fusionResult } = useChatStore();
+  const { status, judgeResult, fusionResult, judgeError } = useChatStore();
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
@@ -15,8 +15,23 @@ export function SidePanel() {
         结果摘要
       </h3>
 
-      {/* 评分区 */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-auto">
+        {/* 空闲状态 */}
+        {status === 'idle' && (
+          <p className="text-sm text-gray-400 dark:text-gray-600">
+            选择模型并输入问题后，评分和融合结果将在此显示
+          </p>
+        )}
+
+        {/* 流式回答中 */}
+        {status === 'streaming' && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+            等待各模型完成回答...
+          </div>
+        )}
+
+        {/* 裁判评分中 */}
         {status === 'judging' && (
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
@@ -24,9 +39,10 @@ export function SidePanel() {
           </div>
         )}
 
+        {/* 融合生成中（评分已完成） */}
         {status === 'fusing' && judgeResult && (
           <div>
-            <ScoreTable />
+            <ScoreTable scores={judgeResult.scores} />
             <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
               <span className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
               融合生成中...
@@ -34,27 +50,36 @@ export function SidePanel() {
           </div>
         )}
 
-        {status === 'complete' && judgeResult && fusionResult && (
+        {/* 完成 — 有评分+融合 */}
+        {status === 'complete' && judgeResult && fusionResult && !judgeError && (
           <div>
-            <ScoreTable />
+            <ScoreTable scores={judgeResult.scores} />
             <FusionResult />
           </div>
         )}
 
-        {status === 'idle' && (
-          <p className="text-sm text-gray-400 dark:text-gray-600">
-            发送问题后，评分和融合结果将在此显示
-          </p>
+        {/* 完成 — 评分失败（无 API Key 或调用失败） */}
+        {status === 'complete' && judgeError && (
+          <div>
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3 mb-3">
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-300">⚠️ 评分不可用</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{judgeError}</p>
+            </div>
+            {/* 没有评分也展示原始回答拼合 */}
+            {fusionResult && <FusionResult />}
+          </div>
+        )}
+
+        {/* 完成 — 有评分但无融合 */}
+        {status === 'complete' && judgeResult && !fusionResult && !judgeError && (
+          <ScoreTable scores={judgeResult.scores} />
         )}
       </div>
     </div>
   );
 }
 
-function ScoreTable() {
-  const { judgeResult } = useChatStore();
-  if (!judgeResult) return null;
-
+function ScoreTable({ scores }: { scores: { model: string; accuracy: number; completeness: number; actionability: number; safety: number; total: number; brief: string }[] }) {
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <table className="w-full text-xs">
@@ -69,7 +94,7 @@ function ScoreTable() {
           </tr>
         </thead>
         <tbody>
-          {judgeResult.scores.map((s) => (
+          {scores.map((s) => (
             <tr key={s.model} className="border-t border-gray-100 dark:border-gray-800">
               <td className="px-2 py-1.5 font-medium">{s.model}</td>
               <td className="px-2 py-1.5 text-center">{s.accuracy}</td>
@@ -91,16 +116,18 @@ function FusionResult() {
 
   return (
     <div className="mt-4 space-y-3">
-      <div>
-        <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
-          ✅ 共识
-        </h4>
-        <ul className="list-disc list-inside text-sm space-y-0.5">
-          {fusionResult.consensus.map((c, i) => (
-            <li key={i} className="text-gray-600 dark:text-gray-400">{c}</li>
-          ))}
-        </ul>
-      </div>
+      {fusionResult.consensus.length > 0 && (
+        <div>
+          <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+            ✅ 共识
+          </h4>
+          <ul className="list-disc list-inside text-sm space-y-0.5">
+            {fusionResult.consensus.map((c, i) => (
+              <li key={i} className="text-gray-600 dark:text-gray-400">{c}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {fusionResult.divergences.length > 0 && (
         <div>

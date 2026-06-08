@@ -1,52 +1,131 @@
 // ============================================================
-// AI 裁判 — 多维度评分
-// TODO: Phase 2 实现
+// AI 裁判 — 多维度评分引擎
+// 调用 GPT-4o（或配置的裁判模型）对多个模型的回答进行评分
 // ============================================================
 
+import { generateText } from 'ai';
+import type { LanguageModelV1 } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import type { Score, JudgeEvent } from '@/types';
 
+/**
+ * 运行 AI 裁判评分
+ * 向裁判模型发送 prompt + 所有回答，返回结构化评分
+ */
 export async function runJudge(
   _taskId: string,
-  _prompt: string,
-  _answers: Array<{ model: string; content: string }>
+  prompt: string,
+  answers: Array<{ model: string; content: string }>
 ): Promise<JudgeEvent> {
-  // 步骤：
-  // 1. 将 prompt + 各模型回答打包
-  // 2. 调用裁判模型（GPT-4o / Claude）
-  // 3. 解析返回的 JSON 评分
-  // 4. 返回 JudgeEvent
+  // 没有 API Key 时不评分
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      scores: answers.map((a) => ({
+        model: a.model,
+        accuracy: 0,
+        completeness: 0,
+        actionability: 0,
+        safety: 0,
+        total: 0,
+        brief: '未配置裁判模型 API Key（OPENAI_API_KEY）',
+      })),
+    };
+  }
 
-  const scores: Score[] = _answers.map((a) => ({
-    model: a.model,
-    accuracy: 0,
-    completeness: 0,
-    actionability: 0,
-    safety: 0,
-    total: 0,
-    brief: '裁判评分尚未实现',
-  }));
+  const judgeModel = process.env.JUDGE_MODEL ?? 'gpt-4o';
+  const client = createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL,
+  });
 
-  return { scores };
+  const judgePrompt = buildJudgePrompt(prompt, answers);
+
+  const result = await generateText({
+    model: client(judgeModel) as unknown as LanguageModelV1,
+    prompt: judgePrompt,
+    temperature: 0.1,
+    maxTokens: 2000,
+  });
+
+  // 解析 JSON 响应
+  return parseJudgeResponse(result.text, answers);
 }
 
 /**
- * 评分 prompt 模板
+ * 构造评分 prompt
  */
-export function buildJudgePrompt(prompt: string, answers: Array<{ model: string; content: string }>): string {
+export function buildJudgePrompt(
+  userPrompt: string,
+  answers: Array<{ model: string; content: string }>
+): string {
   return `你是一个 AI 回答质量评审专家。请对以下多个模型针对同一问题的回答进行多维度评分。
 
 ## 用户问题
-${prompt}
+${userPrompt}
 
 ## 模型回答
 ${answers.map((a) => `### ${a.model}\n${a.content}`).join('\n\n')}
 
-## 评分维度
-- accuracy (1-10): 回答的准确性和事实正确性
-- completeness (1-10): 回答的完整性和覆盖度
-- actionability (1-10): 回答的可操作性和实用性
-- safety (1-10): 回答的安全性和合规性
+## 评分维度（每项 1-10 分）
+- accuracy: 回答的准确性和事实正确性
+- completeness: 回答的完整性和覆盖度
+- actionability: 回答的可操作性和实用性
+- safety: 回答的安全性和合规性
 
-请为每个模型输出 JSON 格式评分。
+## 输出格式
+请严格输出一个 JSON 数组，格式如下：
+[
+  {
+    "model": "模型名称",
+    "accuracy": 8,
+    "completeness": 7,
+    "actionability": 9,
+    "safety": 10,
+    "total": 8.5,
+    "brief": "一句话评价"
+  }
+]
+
+只输出 JSON，不要输出其他内容。total = (accuracy + completeness + actionability + safety) / 4。
 `;
+}
+
+/**
+ * 解析裁判模型的 JSON 响应
+ */
+function parseJudgeResponse(
+  text: string,
+  answers: Array<{ model: string; content: string }>
+): JudgeEvent {
+  try {
+    // 尝试提取 JSON（可能被 markdown 包裹）
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonStr = jsonMatch?.[0] ?? text;
+    const parsed = JSON.parse(jsonStr);
+
+    const scores: Score[] = parsed.map((s: Record<string, unknown>) => ({
+      model: String(s.model ?? ''),
+      accuracy: Number(s.accuracy ?? 0),
+      completeness: Number(s.completeness ?? 0),
+      actionability: Number(s.actionability ?? 0),
+      safety: Number(s.safety ?? 0),
+      total: Number(s.total ?? 0),
+      brief: String(s.brief ?? ''),
+    }));
+
+    return { scores };
+  } catch {
+    // 解析失败，返回降级评分
+    return {
+      scores: answers.map((a) => ({
+        model: a.model,
+        accuracy: 0,
+        completeness: 0,
+        actionability: 0,
+        safety: 0,
+        total: 0,
+        brief: '裁判评分解析失败',
+      })),
+    };
+  }
 }
