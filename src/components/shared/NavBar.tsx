@@ -1,5 +1,6 @@
 // ============================================================
 // NavBar — 顶栏导航 + 深色模式切换
+// 对齐设计系统规范 v1.0
 // ============================================================
 
 'use client';
@@ -10,11 +11,8 @@ export function NavBar() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    // 读取系统偏好
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     setDark(prefersDark);
-
-    // 监听系统变化
     const listener = (e: MediaQueryListEvent) => setDark(e.matches);
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', listener);
     return () => window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
@@ -26,27 +24,28 @@ export function NavBar() {
   };
 
   return (
-    <header className="h-12 border-b border-[var(--border-light)] bg-[var(--bg-surface)] flex items-center justify-between px-6">
+    <header className="h-12 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center justify-between px-6">
       {/* 左侧品牌 */}
       <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-[var(--shadow-1)]"
+             aria-hidden="true">
           AQ
         </div>
-        <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+        <span className="text-[var(--font-h3)] font-semibold text-[var(--color-text-primary)] tracking-tight">
           ArenaQA
         </span>
-        <span className="hidden sm:inline text-xs text-[var(--text-tertiary)] ml-1">
+        <span className="hidden sm:inline text-[var(--font-small)] text-[var(--color-text-disabled)] ml-1">
           AI 问答竞技场
         </span>
       </div>
 
       {/* 右侧工具 */}
-      <div className="flex items-center gap-3">
+      <nav className="flex items-center gap-3" aria-label="顶部导航">
         <a
           href="https://github.com/MingYuePop/SpecForge"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+          className="text-[var(--font-small)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
         >
           SpecForge
         </a>
@@ -54,8 +53,8 @@ export function NavBar() {
         {/* 深色模式切换 */}
         <button
           onClick={toggle}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all"
-          title={dark ? '切换到浅色模式' : '切换到深色模式'}
+          className="w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg)] transition-all duration-150"
+          aria-label={dark ? '切换到浅色模式' : '切换到深色模式'}
         >
           {dark ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +74,7 @@ export function NavBar() {
             </svg>
           )}
         </button>
-      </div>
+      </nav>
     </header>
   );
 }
