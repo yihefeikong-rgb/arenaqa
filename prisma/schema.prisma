@@ -1,0 +1,54 @@
+// ============================================================
+// Prisma Schema — ArenaQA
+// SQLite 数据库
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  prompt    String
+  createdAt DateTime @default(now())
+
+  answers Answer[]
+  judge   Judge?
+  fusion  Fusion?
+}
+
+model Answer {
+  id             String   @id @default(cuid())
+  model          String
+  content        String
+  status         String   // streaming | done | error
+  latencyMs      Int?
+  error          String?
+  conversationId String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+}
+
+model Judge {
+  id             String @id @default(cuid())
+  scores         String // JSON: Score[]
+  raw            String // 裁判模型的原始输出
+  conversationId String @unique
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+}
+
+model Fusion {
+  id             String @id @default(cuid())
+  consensus      String // JSON: string[]
+  divergences    String // JSON: Divergence[]
+  synthesized    String // Markdown
+  conversationId String @unique
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+}
