@@ -1,6 +1,6 @@
 // ============================================================
-// Button — 按钮组件
-// 设计规范：6.1 按钮
+// Button — 按钮组件 v2.1
+// 对齐 frontend-ui-design-system.md 6.1 规范
 // 类型: primary / secondary / text / icon
 // 状态: Normal / Hover / Active / Disabled / Loading
 // ============================================================
@@ -29,7 +29,7 @@ const variantStyles: Record<string, string> = {
 };
 
 const sizeStyles: Record<string, string> = {
-  sm: 'h-8 text-[12px] px-2',
+  sm: 'h-8 text-[12px] px-4',
   md: 'h-10 text-[14px] px-6',
   lg: 'h-12 text-[16px] px-8',
 };
@@ -43,39 +43,27 @@ const iconSizeStyles: Record<string, string> = {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', loading = false, icon, children, className = '', disabled, ...props }, ref) => {
     const isIconOnly = variant === 'icon' || (icon && !children);
-
-    const base = isIconOnly
-      ? iconSizeStyles[size]
-      : sizeStyles[size];
-
+    const base = isIconOnly ? iconSizeStyles[size] : sizeStyles[size];
     const variantClass = variantStyles[variant] ?? variantStyles.primary;
 
     return (
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`
-          inline-flex items-center justify-center gap-2
-          rounded-[var(--radius-sm)] font-medium
-          transition-all duration-150 ease-out
-          disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
-          ${base}
-          ${variantClass}
-          ${className}
-        `}
+        className={[
+          'inline-flex items-center justify-center gap-2',
+          'rounded-[var(--radius-sm)] font-medium',
+          'transition-all duration-150 ease-out',
+          'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
+          base,
+          variantClass,
+          className,
+        ].join(' ')}
         {...props}
       >
         {loading ? (
           <span className="flex items-center gap-2">
-            <svg
-              className="animate-spin"
-              width="16" height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
+            <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
             </svg>
             {children && <span className="opacity-70">{children}</span>}
