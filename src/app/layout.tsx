@@ -1,10 +1,12 @@
 // ============================================================
-// 根布局
+// ArenaQA — 根布局
+// 包含导航栏、深色模式支持、Provider 初始化
 // ============================================================
 
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { NavBar } from '@/components/shared/NavBar';
 
 // 启动时初始化 Provider（从环境变量注册可用的 AI 模型）
 import { initializeProviders } from '@/lib/provider-registry';
@@ -33,7 +35,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <NavBar />
+        <main className="h-[calc(100vh-48px)]">
+          {children}
+        </main>
       </body>
     </html>
   );

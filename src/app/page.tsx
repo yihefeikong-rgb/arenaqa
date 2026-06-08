@@ -12,37 +12,35 @@ import { SidePanel } from '@/components/SidePanel';
 
 export default function Home() {
   return (
-    <main className="h-screen w-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
-      <PanelGroup direction="horizontal" autoSaveId="arenaqa-layout">
-        {/* 左侧：输入面板 */}
-        <Panel defaultSize={20} minSize={15} maxSize={35}>
-          <div className="h-full border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            <InputPanel />
-          </div>
-        </Panel>
+    <PanelGroup direction="horizontal" autoSaveId="arenaqa-layout">
+      {/* 左侧：输入面板 */}
+      <Panel defaultSize={20} minSize={15} maxSize={35}>
+        <div className="h-full border-r border-[var(--border-light)] bg-[var(--bg-surface)]">
+          <InputPanel />
+        </div>
+      </Panel>
 
-        <PanelResizeHandle>
-          <div className="w-1 h-full bg-gray-200 dark:bg-gray-700 hover:bg-blue-400 cursor-col-resize transition-colors" />
-        </PanelResizeHandle>
+      <PanelResizeHandle>
+        <div className="w-[3px] h-full bg-transparent hover:bg-blue-500/30 active:bg-blue-500/50 cursor-col-resize transition-colors mx-0.5" />
+      </PanelResizeHandle>
 
-        {/* 中间：多列回答区 */}
-        <Panel defaultSize={55} minSize={30}>
-          <div className="h-full bg-white dark:bg-gray-900">
-            <ColumnLayout />
-          </div>
-        </Panel>
+      {/* 中间：多列回答区 */}
+      <Panel defaultSize={55} minSize={30}>
+        <div className="h-full bg-[var(--bg-surface)]">
+          <ColumnLayout />
+        </div>
+      </Panel>
 
-        <PanelResizeHandle>
-          <div className="w-1 h-full bg-gray-200 dark:bg-gray-700 hover:bg-blue-400 cursor-col-resize transition-colors" />
-        </PanelResizeHandle>
+      <PanelResizeHandle>
+        <div className="w-[3px] h-full bg-transparent hover:bg-blue-500/30 active:bg-blue-500/50 cursor-col-resize transition-colors mx-0.5" />
+      </PanelResizeHandle>
 
-        {/* 右侧：摘要面板 */}
-        <Panel defaultSize={25} minSize={15} maxSize={40}>
-          <div className="h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-            <SidePanel />
-          </div>
-        </Panel>
-      </PanelGroup>
-    </main>
+      {/* 右侧：摘要面板 */}
+      <Panel defaultSize={25} minSize={15} maxSize={40}>
+        <div className="h-full border-l border-[var(--border-light)] bg-[var(--bg-surface)]">
+          <SidePanel />
+        </div>
+      </Panel>
+    </PanelGroup>
   );
 }

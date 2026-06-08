@@ -1,46 +1,141 @@
+/* ============================================================
+   ArenaQA — 全局样式
+   Tailwind CSS v4 + 自定义设计令牌
+   ============================================================ */
+
 @import "tailwindcss";
 
+/* ---- 设计令牌 (CSS 变量) ---- */
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  /* 背景色系 */
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f1f5f9;
+
+  /* 文字色系 */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+
+  /* 品牌色 */
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+
+  /* 状态色 */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+
+  /* 边框 */
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #030712;
-    --foreground: #f3f4f6;
+    --bg-base: #0b1120;
+    --bg-surface: #131b2e;
+    --bg-elevated: #1a243b;
+    --bg-hover: #1e293b;
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #475569;
+
+    --brand-50: #172554;
+    --brand-100: #1e3a5f;
+    --brand-500: #60a5fa;
+    --brand-600: #3b82f6;
+    --brand-700: #2563eb;
+
+    --border-light: #1e293b;
+    --border-medium: #334155;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2);
   }
 }
 
+/* ---- 全局基础样式 ---- */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 滚动条样式 */
+/* ---- 平滑滚动条 ---- */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--border-medium);
   border-radius: 3px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
 }
 
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: #4b5563;
-  }
+/* ---- prose 微调 ---- */
+.prose {
+  --tw-prose-body: var(--text-primary);
+  --tw-prose-headings: var(--text-primary);
+  --tw-prose-links: var(--brand-500);
+  --tw-prose-bold: var(--text-primary);
+  --tw-prose-code: var(--text-primary);
+  --tw-prose-quotes: var(--text-secondary);
 }
 
-/* Prose 基本样式重置 */
-.prose pre {
-  background: transparent;
-  padding: 0;
+/* ---- 动画 ---- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* ---- 流式光标闪烁 ---- */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+.streaming-cursor::after {
+  content: '▍';
+  animation: cursorBlink 0.8s step-end infinite;
+  color: var(--brand-500);
+}
+
+/* ---- 选中文字高亮 ---- */
+::selection {
+  background: var(--brand-500);
+  color: white;
 }
