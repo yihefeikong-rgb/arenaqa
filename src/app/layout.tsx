@@ -1,6 +1,6 @@
 // ============================================================
 // ArenaQA — 根布局
-// 包含导航栏、深色模式支持、Provider 初始化
+// 包含导航栏、深色模式支持、Provider 初始化，现代化UI版本
 // ============================================================
 
 import type { Metadata } from 'next';
@@ -10,6 +10,7 @@ import { NavBar } from '@/components/shared/NavBar';
 
 // 启动时初始化 Provider（从环境变量注册可用的 AI 模型）
 import { initializeProviders } from '@/lib/provider-registry';
+import '@/styles/animations.css';
 initializeProviders();
 
 const geistSans = Geist({
@@ -33,10 +34,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="zh-CN" suppressHydrationWarning className="modern-gradient-bg">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}>
         <NavBar />
-        <main className="h-[calc(100vh-48px)]">
+        <main className="h-[calc(100vh-48px)] bg-[var(--color-bg)]">
           {children}
         </main>
       </body>

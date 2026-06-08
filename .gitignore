@@ -7,3 +7,9 @@ node_modules/
 prisma/migrations/
 dist/
 build/
+
+# 大图文件
+*.png
+*.jpg
+*.jpeg
+*.gif
