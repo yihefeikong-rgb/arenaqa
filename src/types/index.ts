@@ -2,23 +2,24 @@
 // ArenaQA — 核心类型定义
 // ============================================================
 
-// --- 模型配置 ---
+// --- 模型配置（后端） ---
 
 export interface ModelConfig {
   name: string;
   displayName: string;
-  providerType: 'openai_compat' | 'anthropic' | 'google' | 'playwright';
+  providerType: "openai_compat" | "anthropic" | "google" | "playwright";
   modelId: string;
   apiBase?: string;
   enabled: boolean;
   description: string;
 }
 
-// --- 问答请求/响应 ---
+// --- 问答请求/响应（后端 API） ---
 
 export interface ChatRequest {
   prompt: string;
   models: string[];
+  apiKeys?: Record<string, string>;
 }
 
 export interface TaskCreated {
@@ -27,7 +28,7 @@ export interface TaskCreated {
   createdAt: string;
 }
 
-// --- 流式事件 ---
+// --- SSE 事件类型（后端 → 前端） ---
 
 export interface ChunkEvent {
   model: string;
@@ -44,7 +45,7 @@ export interface DoneEvent {
 export interface ErrorEvent {
   model: string;
   error: string;
-  code: 'TIMEOUT' | 'PROVIDER_ERROR' | 'RATE_LIMITED';
+  code: "TIMEOUT" | "PROVIDER_ERROR" | "RATE_LIMITED";
 }
 
 export interface Score {
@@ -66,6 +67,12 @@ export interface Divergence {
   positions: Record<string, string>;
 }
 
+export interface FusionResult {
+  consensus: string[];
+  divergences: Divergence[];
+  synthesized: string;
+}
+
 export interface FusionEvent {
   consensus: string[];
   divergences: Divergence[];
@@ -79,34 +86,43 @@ export interface CompleteEvent {
 }
 
 export type SSEEvent =
-  | { type: 'chunk'; data: ChunkEvent }
-  | { type: 'done'; data: DoneEvent }
-  | { type: 'error'; data: ErrorEvent }
-  | { type: 'judge'; data: JudgeEvent }
-  | { type: 'judge_error'; data: { error: string } }
-  | { type: 'fusion'; data: FusionEvent }
-  | { type: 'complete'; data: CompleteEvent };
+  | { type: "chunk"; data: ChunkEvent }
+  | { type: "done"; data: DoneEvent }
+  | { type: "error"; data: ErrorEvent }
+  | { type: "judge"; data: JudgeEvent }
+  | { type: "judge_error"; data: { error: string } }
+  | { type: "fusion"; data: FusionEvent }
+  | { type: "complete"; data: CompleteEvent };
 
-// --- 聊天状态（前端） ---
+// --- 前端状态类型 ---
 
 export interface AnswerState {
   model: string;
   content: string;
-  status: 'streaming' | 'done' | 'error';
+  status: "streaming" | "done" | "error";
   latencyMs?: number;
   error?: string;
 }
 
-export type ChatStatus = 'idle' | 'streaming' | 'judging' | 'fusing' | 'complete';
+export type ChatStatus = "idle" | "streaming" | "judging" | "fusing" | "complete";
 
 export interface ChatState {
   status: ChatStatus;
-  prompt: string;
+  selectedModels: string[];
   answers: Record<string, AnswerState>;
-  judgeResult?: JudgeEvent;
-  fusionResult?: FusionEvent;
-  judgeError?: string;
-  taskId?: string;
+  scores: Score[];
+  fusion: FusionResult | null;
+  taskId: string | null;
+  selectModel: (model: string) => void;
+  deselectModel: (model: string) => void;
+  setStatus: (status: ChatStatus) => void;
+  appendChunk: (model: string, content: string) => void;
+  setAnswerDone: (model: string, latencyMs: number) => void;
+  setAnswerError: (model: string, error: string) => void;
+  setScores: (scores: Score[]) => void;
+  setFusion: (fusion: FusionResult) => void;
+  setTaskId: (taskId: string) => void;
+  reset: () => void;
 }
 
 // --- 运行时配置 ---

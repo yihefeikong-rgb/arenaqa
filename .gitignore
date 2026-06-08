@@ -13,3 +13,4 @@ build/
 *.jpg
 *.jpeg
 *.gif
+tsconfig.tsbuildinfo
