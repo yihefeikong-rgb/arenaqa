@@ -4,7 +4,7 @@
 // ============================================================
 
 import { generateText } from 'ai';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { Score, JudgeEvent } from '@/types';
 
@@ -48,10 +48,10 @@ export async function runJudge(
   const judgePrompt = buildJudgePrompt(prompt, answers);
 
   const result = await generateText({
-    model: client(modelId) as unknown as LanguageModelV1,
+    model: client.chat(modelId) as unknown as LanguageModel,
     prompt: judgePrompt,
     temperature: 0.1,
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
   });
 
   // 解析 JSON 响应

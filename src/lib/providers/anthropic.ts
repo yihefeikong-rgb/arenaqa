@@ -2,7 +2,7 @@
 // Anthropic (Claude) Provider
 // ============================================================
 
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { streamText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { BaseProvider } from './base';
@@ -14,15 +14,15 @@ interface AnthropicConfig {
 
 export class AnthropicProvider extends BaseProvider {
   name = 'claude';
-  private model: LanguageModelV1;
+  private model: LanguageModel;
 
   constructor(config: AnthropicConfig) {
     super();
     const client = createAnthropic({ apiKey: config.apiKey });
-    this.model = client(config.modelId ?? 'claude-sonnet-4-20250514') as unknown as LanguageModelV1;
+    this.model = client(config.modelId ?? 'claude-sonnet-4-20250514') as unknown as LanguageModel;
   }
 
-  getModel(): LanguageModelV1 {
+  getModel(): LanguageModel {
     return this.model;
   }
 

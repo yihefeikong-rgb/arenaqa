@@ -95,6 +95,7 @@ class TaskManager {
 
   async startTask(req: ChatRequest): Promise<string> {
     const taskId = `task_${randomUUID().slice(0, 8)}`;
+    console.log(`[startTask] taskId=${taskId} models=${req.models.join(',')} providers=${this.providers.size}`);
     const startTime = Date.now();
 
     // 暂存本次请求的自定义模型和裁判配置
@@ -138,6 +139,7 @@ class TaskManager {
 
     const promises = req.models.map((model) =>
       this.runModel(task, model).catch((err) => {
+        console.error(`[runModel] FAILED for ${model}: ${err.message}`);
         task.failedModels.add(model);
         sseManager.publish(taskId, "error", {
           model,
@@ -187,14 +189,20 @@ class TaskManager {
   }
 
   private async runModel(task: RunningTask, modelName: string): Promise<void> {
+    console.log(`[runModel] starting for ${modelName} task=${task.taskId}`);
+
     // 优先使用运行时传入的 Provider（用户设置面板配置的 Key）
     let provider = task.runtimeProviders.get(modelName);
     if (!provider) {
       provider = this.providers.get(modelName);
     }
     if (!provider) {
-      throw new Error(`Provider not found: ${modelName}. 请在设置中配置 API Key。`);
+      const msg = `Provider not found: ${modelName}. 请在设置中配置 API Key。`;
+      console.error(`[runModel] ${msg} (runtimeProviders: ${task.runtimeProviders.size}, registeredProviders: ${this.providers.size})`);
+      throw new Error(msg);
     }
+
+    console.log(`[runModel] provider ready for ${modelName}, calling stream...`);
 
     const controller = new AbortController();
     task.controllers.set(modelName, controller);
@@ -256,4 +264,7 @@ class TaskManager {
   }
 }
 
-export const taskManager = new TaskManager();
+// 全局单例 — 使用 globalThis 防止 Next.js HMR 重置
+const globalForTask = globalThis as unknown as { __taskManager?: TaskManager };
+export const taskManager: TaskManager =
+  globalForTask.__taskManager ?? (globalForTask.__taskManager = new TaskManager());

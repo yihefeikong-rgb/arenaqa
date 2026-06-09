@@ -9,7 +9,7 @@ import { ScoreCard } from "@/components/SidePanel/ScoreCard";
 import { FusionBox } from "@/components/SidePanel/FusionBox";
 import { CostSummary } from "@/components/SidePanel/CostSummary";
 import { SettingsModal } from "@/components/shared/SettingsModal";
-import { HistorySidebar } from "@/components/shared/HistorySidebar";
+import { HistoryList } from "@/components/shared/HistoryList";
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string; bg: string; border: string; textColor: string }> = {
   idle: { label: "就绪", dotColor: "bg-gray-400", bg: "bg-gray-100", border: "border-gray-200", textColor: "text-gray-600" },
@@ -47,16 +47,15 @@ export default function Home() {
     });
   }, []);
 
-  // 设置面板 + 历史栏
+  // 设置面板 + 历史栏 + 左栏切换
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [leftTab, setLeftTab] = useState<"models" | "history">("models");
 
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
   const hasAnswers = Object.keys(answers).length > 0;
   const hasResults = scores.length > 0;
   const answerModels = [...new Set([...selectedModels, ...Object.keys(answers)])];
-  const cols = answerModels.length <= 2 ? 1 : 2;
-  const maxAnswerWidth = answerModels.length === 1 ? "max-w-3xl" : "";
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -115,14 +114,36 @@ export default function Home() {
 
       {/* Main */}
       <main className="flex flex-1" style={{ maxWidth: 2200, margin: "0 auto" }}>
-        <div className="hidden md:block">
-          <HistorySidebar collapsed={historyCollapsed} onToggle={() => setHistoryCollapsed((v) => !v)} />
-        </div>
-
         <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-3 lg:gap-4 min-w-0">
-        {/* Left: Input */}
-        <section className="min-h-0">
-          <InputPanel />
+        {/* Left: Models / History tabs */}
+        <section className="min-h-0 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex border-b border-gray-200 shrink-0">
+            <button
+              type="button"
+              onClick={() => setLeftTab("models")}
+              className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${
+                leftTab === "models"
+                  ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              参赛模型
+            </button>
+            <button
+              type="button"
+              onClick={() => setLeftTab("history")}
+              className={`flex-1 py-2.5 text-xs font-semibold transition-colors ${
+                leftTab === "history"
+                  ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              历史会话
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {leftTab === "models" ? <InputPanel /> : <HistoryList />}
+          </div>
         </section>
 
         {/* Center: Answers */}
@@ -145,7 +166,7 @@ export default function Home() {
                   <div className="text-xs">选择模型并输入问题，点击发起对比查看各模型回答</div>
                 </div>
               ) : (
-                <div className={`grid gap-4 ${cols === 1 ? "grid-cols-1" : "grid-cols-2"} ${maxAnswerWidth} mx-auto`}>
+                <div className={`grid gap-4 ${answerModels.length <= 2 ? "grid-cols-1" : "grid-cols-2"}`}>
                   {answerModels.map((model) => (
                     <AnswerColumn key={model} model={model} />
                   ))}
@@ -191,10 +212,18 @@ export default function Home() {
 
       {/* Mobile History Overlay */}
       {!historyCollapsed && (
-        <div className="md:hidden fixed inset-0 z-40 flex" onClick={() => setHistoryCollapsed(true)}>
+        <div className="md:hidden fixed inset-0 z-40 flex">
           <div className="flex-1 bg-black/20" onClick={() => setHistoryCollapsed(true)} />
-          <div className="w-[260px] h-dvh bg-white" onClick={(e) => e.stopPropagation()}>
-            <HistorySidebar collapsed={false} onToggle={() => setHistoryCollapsed(true)} />
+          <div className="w-[260px] h-dvh bg-white flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="px-3 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900">历史记录</h3>
+              <button onClick={() => setHistoryCollapsed(true)} className="w-6 h-6 rounded hover:bg-gray-100 flex items-center justify-center text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            </div>
+            <HistoryList />
           </div>
         </div>
       )}

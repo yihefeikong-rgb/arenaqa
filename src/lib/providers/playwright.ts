@@ -4,7 +4,7 @@
 // ============================================================
 
 import { BaseProvider } from './base';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 
 interface PlaywrightConfig {
   name: string;
@@ -24,8 +24,8 @@ export class PlaywrightProvider extends BaseProvider {
     this.cookiePath = config.cookiePath ?? './cookies.json';
   }
 
-  getModel(): LanguageModelV1 {
-    throw new Error('PlaywrightProvider does not use LanguageModelV1');
+  getModel(): LanguageModel {
+    throw new Error('PlaywrightProvider does not use LanguageModel');
   }
 
   async *stream(_prompt: string, _signal?: AbortSignal): AsyncIterable<string> {

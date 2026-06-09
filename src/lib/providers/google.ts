@@ -2,7 +2,7 @@
 // Google Gemini Provider
 // ============================================================
 
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { streamText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { BaseProvider } from './base';
@@ -14,15 +14,15 @@ interface GoogleConfig {
 
 export class GoogleProvider extends BaseProvider {
   name = 'gemini';
-  private model: LanguageModelV1;
+  private model: LanguageModel;
 
   constructor(config: GoogleConfig) {
     super();
     const client = createGoogleGenerativeAI({ apiKey: config.apiKey });
-    this.model = client(config.modelId ?? 'gemini-2.5-pro-exp-03-25') as unknown as LanguageModelV1;
+    this.model = client(config.modelId ?? 'gemini-2.5-pro-exp-03-25') as unknown as LanguageModel;
   }
 
-  getModel(): LanguageModelV1 {
+  getModel(): LanguageModel {
     return this.model;
   }
 

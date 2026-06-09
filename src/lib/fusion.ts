@@ -4,7 +4,7 @@
 // ============================================================
 
 import { generateText } from 'ai';
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { FusionEvent, Divergence } from '@/types';
 
@@ -44,10 +44,10 @@ export async function runFusion(
     const fusionPrompt = buildFusionPrompt(prompt, answers);
 
     const result = await generateText({
-      model: client(judgeModel) as unknown as LanguageModelV1,
+      model: client.chat(judgeModel) as unknown as LanguageModel,
       prompt: fusionPrompt,
       temperature: 0.2,
-      maxTokens: 4096,
+      maxOutputTokens: 4096,
     });
 
     return parseFusionResponse(result.text, answers);

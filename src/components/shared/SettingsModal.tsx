@@ -61,6 +61,16 @@ export function SettingsModal({ open, onClose }: Props) {
   // NVIDIA NIM
   const [nimApiKey, setNimApiKey] = useState("");
 
+  // 密码可见性切换
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const toggleKeyVisibility = (key: string) => {
+    setVisibleKeys((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (!open) return;
     const stored: Record<string, string> = {};
@@ -185,13 +195,27 @@ export function SettingsModal({ open, onClose }: Props) {
                   <div className="text-sm font-bold text-gray-800">{m.name}</div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-0.5">API Key</label>
-                    <input
-                      type="password"
-                      className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
-                      placeholder={m.keyHint}
-                      value={keys[m.storagePrefix] || ""}
-                      onChange={(e) => setKeys((prev) => ({ ...prev, [m.storagePrefix]: e.target.value }))}
-                    />
+                    <div className="relative">
+                      <input
+                        type={visibleKeys.has(m.storagePrefix) ? "text" : "password"}
+                        className="w-full px-2.5 py-1.5 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                        placeholder={m.keyHint}
+                        value={keys[m.storagePrefix] || ""}
+                        onChange={(e) => setKeys((prev) => ({ ...prev, [m.storagePrefix]: e.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleKeyVisibility(m.storagePrefix)}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                        title="显示/隐藏"
+                      >
+                        {visibleKeys.has(m.storagePrefix) ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-0.5">Base URL</label>
@@ -236,13 +260,27 @@ export function SettingsModal({ open, onClose }: Props) {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">裁判 API Key</label>
-                <input
-                  type="password"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
-                  placeholder="sk-xxx"
-                  value={judgeApiKey}
-                  onChange={(e) => setJudgeApiKey(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={visibleKeys.has("judge") ? "text" : "password"}
+                    className="w-full px-3 py-2 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                    placeholder="sk-xxx"
+                    value={judgeApiKey}
+                    onChange={(e) => setJudgeApiKey(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleKeyVisibility("judge")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                    title="显示/隐藏"
+                  >
+                    {visibleKeys.has("judge") ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">裁判模型 ID</label>
@@ -268,13 +306,27 @@ export function SettingsModal({ open, onClose }: Props) {
               </p>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">NVIDIA NIM API Key</label>
-                <input
-                  type="password"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
-                  placeholder="nvapi-..."
-                  value={nimApiKey}
-                  onChange={(e) => setNimApiKey(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={visibleKeys.has("nim") ? "text" : "password"}
+                    className="w-full px-3 py-2 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                    placeholder="nvapi-..."
+                    value={nimApiKey}
+                    onChange={(e) => setNimApiKey(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleKeyVisibility("nim")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                    title="显示/隐藏"
+                  >
+                    {visibleKeys.has("nim") ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <button onClick={handleSaveNim} className={`w-full py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
                 {saved ? "已保存" : "保存 NVIDIA NIM"}
@@ -301,7 +353,16 @@ export function SettingsModal({ open, onClose }: Props) {
                 <div className="space-y-2 p-3 border border-indigo-200 rounded-lg bg-indigo-50/30">
                   <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" placeholder="显示名称 (如: 本地Qwen)" value={editingModel.name} onChange={(e) => setEditingModel({ ...editingModel, name: e.target.value })} />
                   <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" placeholder="API Base URL (如: http://localhost:11434/v1)" value={editingModel.apiBase} onChange={(e) => setEditingModel({ ...editingModel, apiBase: e.target.value })} />
-                  <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" type="password" placeholder="API Key" value={editingModel.apiKey} onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })} />
+                  <div className="relative">
+                    <input className="w-full px-2.5 py-1.5 pr-8 border border-gray-200 rounded text-sm" type={visibleKeys.has("custom-editor") ? "text" : "password"} placeholder="API Key" value={editingModel.apiKey} onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })} />
+                    <button type="button" onClick={() => toggleKeyVisibility("custom-editor")} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded" title="显示/隐藏">
+                      {visibleKeys.has("custom-editor") ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      )}
+                    </button>
+                  </div>
                   <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" placeholder="Model ID (如: qwen2.5)" value={editingModel.modelId} onChange={(e) => setEditingModel({ ...editingModel, modelId: e.target.value })} />
                   <div className="flex gap-2">
                     <button onClick={saveCustomModel} className="flex-1 py-1.5 bg-indigo-500 text-white rounded text-sm font-medium">保存</button>

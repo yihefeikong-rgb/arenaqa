@@ -83,5 +83,7 @@ export class SSEManager {
   }
 }
 
-// 全局单例
-export const sseManager = new SSEManager();
+// 全局单例 — 使用 globalThis 防止 Next.js HMR 重置
+const globalForSSE = globalThis as unknown as { __sseManager?: SSEManager };
+export const sseManager: SSEManager =
+  globalForSSE.__sseManager ?? (globalForSSE.__sseManager = new SSEManager());

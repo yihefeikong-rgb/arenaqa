@@ -3,7 +3,7 @@
 // 支持 DeepSeek、通义千问、智谱、Kimi 等
 // ============================================================
 
-import type { LanguageModelV1 } from 'ai';
+import type { LanguageModel } from 'ai';
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { BaseProvider } from './base';
@@ -17,7 +17,7 @@ interface OpenAICompatConfig {
 
 export class OpenAICompatProvider extends BaseProvider {
   name: string;
-  private model: LanguageModelV1;
+  private model: LanguageModel;
 
   constructor(config: OpenAICompatConfig) {
     super();
@@ -26,10 +26,10 @@ export class OpenAICompatProvider extends BaseProvider {
       baseURL: config.apiBase,
       apiKey: config.apiKey,
     });
-    this.model = client(config.modelId) as unknown as LanguageModelV1;
+    this.model = client.chat(config.modelId) as unknown as LanguageModel;
   }
 
-  getModel(): LanguageModelV1 {
+  getModel(): LanguageModel {
     return this.model;
   }
 
