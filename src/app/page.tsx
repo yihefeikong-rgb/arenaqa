@@ -53,8 +53,8 @@ export default function Home() {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
   const hasAnswers = Object.keys(answers).length > 0;
   const hasResults = scores.length > 0;
-  // 显示所有有回答数据的模型（不限于当前选中），取消选中不影响已生成的回答
-  const answerModels = Object.keys(answers);
+  // 显示当前选中或已有回答的模型（去重），确保发送后立刻看到每个模型的卡片
+  const answerModels = [...new Set([...selectedModels, ...Object.keys(answers)])];
   const cols = answerModels.length <= 2 ? 1 : 2;
 
   return (

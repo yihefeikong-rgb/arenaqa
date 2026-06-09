@@ -253,7 +253,7 @@ export function InputPanel() {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">选择参赛模型</h3>
-        <span className="text-xs text-gray-500">{selectedModels.length}/4</span>
+        <span className="text-xs text-gray-500">{selectedModels.length}/6</span>
       </div>
 
       {/* 模型分组标签 */}

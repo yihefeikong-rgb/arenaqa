@@ -15,9 +15,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ detail: 'At least one model is required' }, { status: 400 });
     }
 
-    // 检查模型是否可用
-    const available = taskManager.getAvailableModels();
-    const invalid = body.models.filter((m) => !available.includes(m));
+    // 模型校验：支持 .env 注册的 + 请求中携带 apiKeys 的 + 自定义模型
+    const registered = taskManager.getAvailableModels();
+    const hasKey = body.apiKeys ? Object.keys(body.apiKeys) : [];
+    const customIds = (body.customModels || []).map((m) => m.id);
+    const allValid = [...registered, ...hasKey, ...customIds];
+    const invalid = body.models.filter((m) => !allValid.includes(m) && !m.endsWith('-free'));
     if (invalid.length > 0) {
       return NextResponse.json(
         { detail: `Invalid models: ${invalid.join(', ')}` },

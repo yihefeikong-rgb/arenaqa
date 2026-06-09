@@ -18,6 +18,7 @@ services:
       - "8001:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_KIMI_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -33,6 +34,7 @@ services:
       - "8002:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_QWEN_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -48,6 +50,7 @@ services:
       - "8003:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_DEEPSEEK_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -63,6 +66,7 @@ services:
       - "8004:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_DOUBAO_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -78,6 +82,7 @@ services:
       - "8005:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_GLM_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -93,6 +98,7 @@ services:
       - "8006:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_SPARK_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -100,14 +106,15 @@ services:
       timeout: 5s
       retries: 3
 
-  # ====== 秘塔搜索 ======
-  metaso-free-api:
-    image: vinlic/metaso-free-api:latest
-    container_name: arenaqa-metaso-free
+  # ====== 阶跃星辰 ======
+  step-free-api:
+    image: vinlic/step-free-api:latest
+    container_name: arenaqa-step-free
     ports:
       - "8007:8000"
     environment:
       - TZ=Asia/Shanghai
+      - TOKEN=${FREE_STEP_FREE_TOKEN}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]

@@ -13,7 +13,7 @@ const MODEL_META: Record<string, { name: string; icon: string; desc: string }> =
   "doubao-free": { name: "豆包", icon: "🟢", desc: "多模态" },
   "glm-free": { name: "智谱", icon: "🧠", desc: "中文优化" },
   "spark-free": { name: "星火", icon: "⚡", desc: "语音办公" },
-  "metaso-free": { name: "秘塔", icon: "🔍", desc: "超强检索" },
+  "step-free": { name: "阶跃星辰", icon: "🌌", desc: "多模态推理" },
 };
 
 const MODEL_GRADIENT: Record<string, string> = {
@@ -44,7 +44,7 @@ export function ModelCard({ model, enabled = true }: Props) {
   const meta = getMeta(model);
   const isFree = model.endsWith("-free");
   const isSelected = selectedModels.includes(model);
-  const isFull = selectedModels.length >= 4;
+  const isFull = selectedModels.length >= 6;
   const clickable = enabled && (isSelected || !isFull);
 
   const gradient = MODEL_GRADIENT[model] || (isFree ? "from-green-500 to-emerald-500" : "from-gray-500 to-gray-400");

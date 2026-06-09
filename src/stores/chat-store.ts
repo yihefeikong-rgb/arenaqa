@@ -12,7 +12,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   selectModel: (model) => {
     set((state) => {
-      if (state.selectedModels.length >= 4) return state;
+      if (state.selectedModels.length >= 6) return state;
       if (state.selectedModels.includes(model)) return state;
       return { selectedModels: [...state.selectedModels, model] };
     });

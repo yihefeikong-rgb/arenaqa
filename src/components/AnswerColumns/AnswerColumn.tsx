@@ -61,7 +61,27 @@ export function AnswerColumn({ model }: Props) {
     [feedback, model, lastPrompt, answer, dislikeComment]
   );
 
-  if (!answer || !meta) return null;
+  if (!meta) return null;
+
+  if (!answer) {
+    // 模型已选中但尚未收到回答 — 显示等待卡片
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+        <div className={`px-4 py-2.5 flex items-center gap-2 text-white font-semibold text-sm ${MODEL_COLORS[model] || "bg-gray-600"}`}>
+          <div className="w-5 h-5 rounded bg-white/20 flex items-center justify-center text-[10px] font-bold shrink-0">{meta.icon}</div>
+          <span>{meta.name}</span>
+          <span className="ml-auto text-[11px] opacity-75">准备中</span>
+        </div>
+        <div className="p-4">
+          <div className="space-y-2">
+            {[90, 70, 85, 60, 75].map((w, i) => (
+              <div key={i} className="h-3.5 bg-gray-100 rounded animate-pulse" style={{ width: `${w}%` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isStreaming = answer.status === "streaming";
   const isError = answer.status === "error";
