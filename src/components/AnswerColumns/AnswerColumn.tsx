@@ -93,7 +93,7 @@ export function AnswerColumn({ model }: Props) {
   const hasContent = answer.content?.length > 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className={`bg-white rounded-xl border overflow-hidden transition-colors ${isStreaming ? "border-indigo-300 animate-pulse-border" : "border-gray-200"}`}>
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
         <div className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center text-white text-xs font-bold shrink-0`}>

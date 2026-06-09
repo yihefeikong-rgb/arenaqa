@@ -12,6 +12,7 @@ import { CostSummary } from "@/components/SidePanel/CostSummary";
 import { SettingsModal } from "@/components/shared/SettingsModal";
 import { HistoryList } from "@/components/shared/HistoryList";
 import { PromptInputBar } from "@/components/PromptInputBar";
+import { MobileNav } from "@/components/MobileNav";
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string; bg: string; border: string; textColor: string }> = {
   idle: { label: "就绪", dotColor: "bg-gray-400", bg: "bg-gray-100", border: "border-gray-200", textColor: "text-gray-600" },
@@ -53,6 +54,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [leftTab, setLeftTab] = useState<"models" | "history">("models");
+  const [mobileTab, setMobileTab] = useState<"models" | "chat" | "results">("chat");
 
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
   const hasAnswers = Object.keys(answers).length > 0;
@@ -115,10 +117,10 @@ export default function Home() {
       </header>
 
       {/* Main */}
-      <main className="flex flex-1" style={{ maxWidth: 2200, margin: "0 auto" }}>
-        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-3 lg:gap-4 min-w-0 min-h-0">
+      <main className="flex flex-1 pb-14 md:pb-0" style={{ maxWidth: 2200, margin: "0 auto" }}>
+        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr_320px] gap-3 lg:gap-4 min-w-0 min-h-0">
         {/* Left: Models / History tabs */}
-        <section className="min-h-0 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <section className={`min-h-0 flex-col bg-white rounded-xl border border-gray-200 overflow-hidden animate-fade-in ${mobileTab === "models" ? "flex" : "hidden"} md:flex`}>
           <div className="flex border-b border-gray-200 shrink-0">
             <button
               type="button"
@@ -149,7 +151,7 @@ export default function Home() {
         </section>
 
         {/* Center: Answers + Input */}
-        <section className="min-h-0 flex flex-col min-w-0">
+        <section className={`min-h-0 flex-col min-w-0 animate-fade-in ${mobileTab === "chat" ? "flex" : "hidden"} md:flex`}>
           <div className="flex-1 min-h-0 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
             <div className="px-4 py-3 border-b border-gray-200 shrink-0">
               <div className="flex items-center gap-2">
@@ -169,14 +171,14 @@ export default function Home() {
                   <div className="text-sm font-semibold text-gray-600 mb-1">选择参赛模型</div>
                   <div className="text-xs mb-4">最多支持 6 个 AI 同时对决</div>
                   <button
-                    onClick={() => setLeftTab("models")}
+                    onClick={() => { setLeftTab("models"); setMobileTab("models"); }}
                     className="px-4 py-2 text-xs font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
                   >
                     去添加模型
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 grid-rows-2 gap-4 h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-4 h-full">
                   {answerModels.map((model) => (
                     <AnswerColumn key={model} model={model} />
                   ))}
@@ -184,7 +186,7 @@ export default function Home() {
                     <PlaceholderCard
                       key={`placeholder-${i}`}
                       index={i}
-                      onClick={() => setLeftTab("models")}
+                      onClick={() => { setLeftTab("models"); setMobileTab("models"); }}
                     />
                   ))}
                 </div>
@@ -195,7 +197,7 @@ export default function Home() {
         </section>
 
         {/* Right: Results */}
-        <section className="min-h-0">
+        <section className={`min-h-0 animate-fade-in ${mobileTab === "results" ? "block" : "hidden"} lg:block`}>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
             <div className="px-4 py-3 border-b border-gray-200 shrink-0">
               <h3 className="text-sm font-semibold text-gray-900">评分与融合</h3>
@@ -222,6 +224,9 @@ export default function Home() {
         </section>
         </div>
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} hasResults={hasResults} />
 
       {/* Mobile History Overlay */}
       {!historyCollapsed && (
