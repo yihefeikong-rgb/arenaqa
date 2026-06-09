@@ -154,3 +154,19 @@ pre code.hljs {
   background: #1e293b;
   color: #f9a8d4;
 }
+
+/* 移动端触摸优化 */
+@media (max-width: 767px) {
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  textarea {
+    font-size: 16px; /* 防止 iOS 缩放 */
+  }
+
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}

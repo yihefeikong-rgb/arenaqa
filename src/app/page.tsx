@@ -7,7 +7,9 @@ import { InputPanel } from "@/components/InputPanel";
 import { AnswerColumn } from "@/components/AnswerColumns/AnswerColumn";
 import { ScoreCard } from "@/components/SidePanel/ScoreCard";
 import { FusionBox } from "@/components/SidePanel/FusionBox";
+import { CostSummary } from "@/components/SidePanel/CostSummary";
 import { SettingsModal } from "@/components/shared/SettingsModal";
+import { HistorySidebar } from "@/components/shared/HistorySidebar";
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string; bg: string; border: string; textColor: string }> = {
   idle: { label: "就绪", dotColor: "bg-gray-400", bg: "bg-gray-100", border: "border-gray-200", textColor: "text-gray-600" },
@@ -44,13 +46,15 @@ export default function Home() {
     });
   }, []);
 
-  // 设置面板
+  // 设置面板 + 历史栏
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
 
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
   const hasAnswers = Object.keys(answers).length > 0;
   const hasResults = scores.length > 0;
-  const answerModels = selectedModels.filter((m) => answers[m]);
+  // 显示所有有回答数据的模型（不限于当前选中），取消选中不影响已生成的回答
+  const answerModels = Object.keys(answers);
   const cols = answerModels.length <= 2 ? 1 : 2;
 
   return (
@@ -66,6 +70,18 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* 移动端历史按钮 */}
+          <button
+            type="button"
+            onClick={() => setHistoryCollapsed((v) => !v)}
+            className="md:hidden w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
+            title="历史记录"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          </button>
+
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${config.bg} ${config.textColor} ${config.border}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor} ${status === "streaming" ? "animate-pulse" : ""}`} />
             {config.label}
@@ -97,7 +113,12 @@ export default function Home() {
       </header>
 
       {/* Main */}
-      <main className="w-full mx-auto px-4 py-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-4 flex-1" style={{ maxWidth: 1800 }}>
+      <main className="flex flex-1" style={{ maxWidth: 2200, margin: "0 auto" }}>
+        <div className="hidden md:block">
+          <HistorySidebar collapsed={historyCollapsed} onToggle={() => setHistoryCollapsed((v) => !v)} />
+        </div>
+
+        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-3 lg:gap-4 min-w-0">
         {/* Left: Input */}
         <section className="min-h-0">
           <InputPanel />
@@ -148,17 +169,29 @@ export default function Home() {
                     <ScoreCard key={score.model} score={score} index={i} />
                   ))}
                   {fusion && <FusionBox fusion={fusion} />}
+                  <CostSummary />
                 </div>
               )}
             </div>
           </div>
         </section>
+        </div>
       </main>
 
       {/* Footer */}
       <footer className="text-center py-3 text-xs text-gray-400 flex-shrink-0">
         ArenaQA · Next.js 15 · SSE 流式
       </footer>
+
+      {/* Mobile History Overlay */}
+      {!historyCollapsed && (
+        <div className="md:hidden fixed inset-0 z-40 flex" onClick={() => setHistoryCollapsed(true)}>
+          <div className="flex-1 bg-black/20" onClick={() => setHistoryCollapsed(true)} />
+          <div className="w-[260px] h-dvh bg-white" onClick={(e) => e.stopPropagation()}>
+            <HistorySidebar collapsed={false} onToggle={() => setHistoryCollapsed(true)} />
+          </div>
+        </div>
+      )}
 
       {/* Settings Modal */}
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />

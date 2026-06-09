@@ -1,0 +1,116 @@
+# ArenaQA 免费模型 Docker Compose
+# 使用 LLM-Red-Team 的免费 API Docker 镜像
+# 仅供学习研究，请勿用于商业用途
+#
+# 使用前:
+# 1. 复制 .env.example 为 .env
+# 2. 填入各平台的 Cookie Token
+# 3. docker compose -f docker-compose.free.yml up -d
+
+version: "3.9"
+
+services:
+  # ====== Kimi (月之暗面) ======
+  kimi-free-api:
+    image: vinlic/kimi-free-api:latest
+    container_name: arenaqa-kimi-free
+    ports:
+      - "8001:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ====== 通义千问 ======
+  qwen-free-api:
+    image: vinlic/qwen-free-api:latest
+    container_name: arenaqa-qwen-free
+    ports:
+      - "8002:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ====== DeepSeek (网页版) ======
+  deepseek-free-api:
+    image: vinlic/deepseek-free-api:latest
+    container_name: arenaqa-deepseek-free
+    ports:
+      - "8003:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ====== 豆包 ======
+  doubao-free-api:
+    image: vinlic/doubao-free-api:latest
+    container_name: arenaqa-doubao-free
+    ports:
+      - "8004:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ====== 智谱清言 ======
+  glm-free-api:
+    image: vinlic/glm-free-api:latest
+    container_name: arenaqa-glm-free
+    ports:
+      - "8005:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ====== 讯飞星火 ======
+  spark-free-api:
+    image: vinlic/spark-free-api:latest
+    container_name: arenaqa-spark-free
+    ports:
+      - "8006:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ====== 秘塔搜索 ======
+  metaso-free-api:
+    image: vinlic/metaso-free-api:latest
+    container_name: arenaqa-metaso-free
+    ports:
+      - "8007:8000"
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

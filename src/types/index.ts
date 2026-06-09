@@ -16,10 +16,32 @@ export interface ModelConfig {
 
 // --- 问答请求/响应（后端 API） ---
 
+export interface CustomModelConfig {
+  id: string;
+  name: string;
+  apiBase: string;
+  modelId: string;
+}
+
+export interface JudgeConfig {
+  apiKey: string;
+  baseUrl: string;
+  modelId: string;
+}
+
+export interface ModelRuntimeConfig {
+  model: string;
+  apiBase?: string;
+  modelId?: string;
+}
+
 export interface ChatRequest {
   prompt: string;
   models: string[];
   apiKeys?: Record<string, string>;
+  modelConfigs?: ModelRuntimeConfig[];
+  customModels?: CustomModelConfig[];
+  judgeConfig?: JudgeConfig | null;
 }
 
 export interface TaskCreated {
@@ -99,7 +121,7 @@ export type SSEEvent =
 export interface AnswerState {
   model: string;
   content: string;
-  status: "streaming" | "done" | "error";
+  status: "streaming" | "done" | "error" | "stopped";
   latencyMs?: number;
   error?: string;
 }
@@ -113,6 +135,7 @@ export interface ChatState {
   scores: Score[];
   fusion: FusionResult | null;
   taskId: string | null;
+  lastPrompt: string;
   selectModel: (model: string) => void;
   deselectModel: (model: string) => void;
   setStatus: (status: ChatStatus) => void;
@@ -122,6 +145,7 @@ export interface ChatState {
   setScores: (scores: Score[]) => void;
   setFusion: (fusion: FusionResult) => void;
   setTaskId: (taskId: string) => void;
+  stopModel: (model: string) => void;
   reset: () => void;
 }
 

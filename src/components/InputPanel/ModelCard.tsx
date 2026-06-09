@@ -7,6 +7,13 @@ const MODEL_META: Record<string, { name: string; icon: string; desc: string }> =
   qwen: { name: "通义千问", icon: "Q", desc: "阿里百炼 API" },
   claude: { name: "Claude", icon: "C", desc: "Anthropic" },
   gemini: { name: "Gemini", icon: "G", desc: "Google" },
+  "kimi-free": { name: "Kimi", icon: "🌙", desc: "200K 长文本" },
+  "qwen-free": { name: "千问 Free", icon: "🔷", desc: "全能 + 绘图" },
+  "deepseek-free": { name: "DeepSeek Free", icon: "🐋", desc: "推理/代码" },
+  "doubao-free": { name: "豆包", icon: "🟢", desc: "多模态" },
+  "glm-free": { name: "智谱", icon: "🧠", desc: "中文优化" },
+  "spark-free": { name: "星火", icon: "⚡", desc: "语音办公" },
+  "metaso-free": { name: "秘塔", icon: "🔍", desc: "超强检索" },
 };
 
 const MODEL_GRADIENT: Record<string, string> = {
@@ -21,17 +28,26 @@ interface Props {
   enabled?: boolean;
 }
 
+function getMeta(model: string): { name: string; icon: string; desc: string } {
+  return MODEL_META[model] || {
+    name: model.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    icon: model.slice(0, 2).toUpperCase(),
+    desc: "",
+  };
+}
+
 export function ModelCard({ model, enabled = true }: Props) {
   const selectedModels = useChatStore((s) => s.selectedModels);
   const selectModel = useChatStore((s) => s.selectModel);
   const deselectModel = useChatStore((s) => s.deselectModel);
 
-  const meta = MODEL_META[model];
+  const meta = getMeta(model);
+  const isFree = model.endsWith("-free");
   const isSelected = selectedModels.includes(model);
   const isFull = selectedModels.length >= 4;
   const clickable = enabled && (isSelected || !isFull);
 
-  if (!meta) return null;
+  const gradient = MODEL_GRADIENT[model] || (isFree ? "from-green-500 to-emerald-500" : "from-gray-500 to-gray-400");
 
   const handleClick = () => {
     if (!clickable) return;
@@ -57,23 +73,25 @@ export function ModelCard({ model, enabled = true }: Props) {
       `}
     >
       {isSelected && (
-        <div className={`absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-br ${MODEL_GRADIENT[model]} text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm z-10`}>
+        <div className={`absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-br ${gradient} text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm z-10`}>
           &#10003;
         </div>
       )}
 
       <div className="flex items-center gap-2 mb-1.5">
-        <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${MODEL_GRADIENT[model]} flex items-center justify-center text-white text-[11px] font-bold shrink-0`}>
+        <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-[11px] font-bold shrink-0`}>
           {meta.icon}
         </div>
         <span className="font-semibold text-[13px] text-gray-900">{meta.name}</span>
       </div>
 
-      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-semibold mb-1 ${enabled ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-        {enabled ? "已配置" : "未配置"}
+      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-semibold mb-1 ${enabled ? (isFree ? "bg-green-100 text-green-700" : "bg-emerald-100 text-emerald-700") : "bg-gray-100 text-gray-500"}`}>
+        {enabled ? (isFree ? "已配置 · FREE" : "已配置") : "未配置"}
       </span>
 
-      <div className="text-[11px] text-gray-500 leading-tight">{meta.desc}</div>
+      {meta.desc && (
+        <div className="text-[11px] text-gray-500 leading-tight">{meta.desc}</div>
+      )}
     </button>
   );
 }

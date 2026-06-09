@@ -8,6 +8,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   scores: [],
   fusion: null,
   taskId: null,
+  lastPrompt: "",
 
   selectModel: (model) => {
     set((state) => {
@@ -65,6 +66,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setFusion: (fusion) => set({ fusion }),
 
   setTaskId: (taskId) => set({ taskId }),
+
+  stopModel: (model) =>
+    set((state) => ({
+      answers: {
+        ...state.answers,
+        [model]: {
+          ...(state.answers[model] || { model, content: "", status: "streaming" }),
+          status: "stopped",
+        },
+      },
+    })),
 
   reset: () =>
     set({

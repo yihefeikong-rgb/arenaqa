@@ -47,6 +47,8 @@ const MODEL_ID: Record<string, string> = {
 class TaskManager {
   private tasks = new Map<string, RunningTask>();
   private providers = new Map<string, BaseProvider>();
+  private _customModels: Array<{ id: string; name: string; apiBase: string; modelId: string }> = [];
+  private _judgeConfig: { apiKey: string; baseUrl: string; modelId: string } | null = null;
 
   registerProvider(name: string, provider: BaseProvider): void {
     this.providers.set(name, provider);
@@ -56,25 +58,44 @@ class TaskManager {
     return Array.from(this.providers.keys());
   }
 
-  /** 创建运行时 Provider（使用用户从设置面板传入的 Key） */
+  /** 创建运行时 Provider（使用用户从设置面板传入的 Key + BaseURL + ModelID） */
   private createRuntimeProvider(
     modelName: string,
-    apiKey: string
+    apiKey: string,
+    overrideBaseUrl?: string,
+    overrideModelId?: string
   ): BaseProvider {
     switch (modelName) {
       case "deepseek":
       case "qwen":
         return new OpenAICompatProvider({
           name: modelName,
-          apiBase: MODEL_BASE_URL[modelName],
+          apiBase: overrideBaseUrl || MODEL_BASE_URL[modelName],
           apiKey,
-          modelId: MODEL_ID[modelName],
+          modelId: overrideModelId || MODEL_ID[modelName],
         });
       case "claude":
-        return new AnthropicProvider({ apiKey, modelId: process.env.CLAUDE_MODEL_ID });
+        return new AnthropicProvider({ apiKey, modelId: overrideModelId || process.env.CLAUDE_MODEL_ID });
       case "gemini":
-        return new GoogleProvider({ apiKey, modelId: process.env.GEMINI_MODEL_ID });
+        return new GoogleProvider({ apiKey, modelId: overrideModelId || process.env.GEMINI_MODEL_ID });
       default:
+        // 检查免费模型（以 -free 结尾）
+        if (modelName.endsWith("-free")) {
+          const freeModel = this.providers.get(modelName);
+          if (freeModel) return freeModel;
+        }
+        // 检查自定义模型（以 custom- 开头）
+        if (modelName.startsWith("custom-")) {
+          const def = this._customModels.find((m) => m.id === modelName);
+          if (def) {
+            return new OpenAICompatProvider({
+              name: modelName,
+              apiBase: def.apiBase,
+              apiKey,
+              modelId: def.modelId,
+            });
+          }
+        }
         throw new Error(`Unknown model: ${modelName}`);
     }
   }
@@ -83,13 +104,24 @@ class TaskManager {
     const taskId = `task_${randomUUID().slice(0, 8)}`;
     const startTime = Date.now();
 
+    // 暂存本次请求的自定义模型和裁判配置
+    this._customModels = req.customModels || [];
+    this._judgeConfig = req.judgeConfig || null;
+
+    // 构建 model → config 映射
+    const configMap = new Map<string, { apiBase?: string; modelId?: string }>();
+    if (req.modelConfigs) {
+      req.modelConfigs.forEach((c) => configMap.set(c.model, { apiBase: c.apiBase, modelId: c.modelId }));
+    }
+
     // 使用运行时传入的 apiKeys 创建临时 Provider
     const runtimeProviders = new Map<string, BaseProvider>();
     if (req.apiKeys) {
       for (const [model, key] of Object.entries(req.apiKeys)) {
         if (key && req.models.includes(model)) {
           try {
-            runtimeProviders.set(model, this.createRuntimeProvider(model, key));
+            const cfg = configMap.get(model);
+            runtimeProviders.set(model, this.createRuntimeProvider(model, key, cfg?.apiBase, cfg?.modelId));
           } catch {
             // 创建失败则 fallback 到已注册的 provider
           }
@@ -136,7 +168,7 @@ class TaskManager {
           .filter((m) => task.completedModels.has(m))
           .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
 
-        const judgeResult = await runJudge(taskId, req.prompt, answersArr);
+        const judgeResult = await runJudge(taskId, req.prompt, answersArr, this._judgeConfig);
         sseManager.publish(taskId, "judge", judgeResult);
 
         try {

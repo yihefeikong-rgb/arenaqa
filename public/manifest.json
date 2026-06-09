@@ -1,0 +1,22 @@
+{
+  "name": "ArenaQA — AI 问答竞技场",
+  "short_name": "ArenaQA",
+  "description": "开源、自托管的个人 AI 问答工作台。并发对比多个模型，AI 裁判自动评分融合。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

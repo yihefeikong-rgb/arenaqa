@@ -1,6 +1,6 @@
 // ============================================================
 // AI 裁判 — 多维度评分引擎
-// 调用 GPT-4o（或配置的裁判模型）对多个模型的回答进行评分
+// 支持配置自定义裁判模型（任意 OpenAI 兼容 API）
 // ============================================================
 
 import { generateText } from 'ai';
@@ -8,17 +8,28 @@ import type { LanguageModelV1 } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { Score, JudgeEvent } from '@/types';
 
+export interface JudgeConfig {
+  apiKey: string;
+  baseUrl: string;
+  modelId: string;
+}
+
 /**
  * 运行 AI 裁判评分
- * 向裁判模型发送 prompt + 所有回答，返回结构化评分
+ * @param judgeConfig 可选的自定义裁判配置（来自前端），未提供则从 .env 读取
  */
 export async function runJudge(
   _taskId: string,
   prompt: string,
-  answers: Array<{ model: string; content: string }>
+  answers: Array<{ model: string; content: string }>,
+  judgeConfig?: JudgeConfig | null
 ): Promise<JudgeEvent> {
+  const apiKey = judgeConfig?.apiKey || process.env.OPENAI_API_KEY;
+  const baseUrl = judgeConfig?.baseUrl || process.env.OPENAI_BASE_URL;
+  const modelId = judgeConfig?.modelId || process.env.JUDGE_MODEL || 'gpt-4o';
+
   // 没有 API Key 时不评分
-  if (!process.env.OPENAI_API_KEY) {
+  if (!apiKey) {
     return {
       scores: answers.map((a) => ({
         model: a.model,
@@ -27,21 +38,17 @@ export async function runJudge(
         actionability: 0,
         safety: 0,
         total: 0,
-        brief: '未配置裁判模型 API Key（OPENAI_API_KEY）',
+        brief: '未配置裁判模型 API Key（请在设置中配置）',
       })),
     };
   }
 
-  const judgeModel = process.env.JUDGE_MODEL ?? 'gpt-4o';
-  const client = createOpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_BASE_URL,
-  });
+  const client = createOpenAI({ apiKey, baseURL: baseUrl || undefined });
 
   const judgePrompt = buildJudgePrompt(prompt, answers);
 
   const result = await generateText({
-    model: client(judgeModel) as unknown as LanguageModelV1,
+    model: client(modelId) as unknown as LanguageModelV1,
     prompt: judgePrompt,
     temperature: 0.1,
     maxTokens: 2000,
