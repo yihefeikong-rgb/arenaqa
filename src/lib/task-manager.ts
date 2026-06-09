@@ -35,7 +35,7 @@ const MODEL_KEY_MAP: Record<string, string> = {
 };
 
 const MODEL_BASE_URL: Record<string, string> = {
-  deepseek: "https://api.deepseek.com",
+  deepseek: "https://api.deepseek.com/v1",
   qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1",
 };
 

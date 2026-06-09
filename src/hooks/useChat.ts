@@ -213,8 +213,8 @@ export function useChat() {
         });
 
         eventSource.onerror = () => {
-          eventSource.close();
-          eventSourceRef.current = null;
+          // 不关闭连接 — 让浏览器自动重连
+          // 关闭会导致后续事件丢失
         };
       } catch (err) {
         store.setStatus("idle");
@@ -228,6 +228,7 @@ export function useChat() {
     if (!taskId) return;
 
     if (eventSourceRef.current) {
+      eventSourceRef.current.onerror = null;
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
@@ -237,7 +238,7 @@ export function useChat() {
     try {
       await fetch(`/api/chat/abort/${taskId}`, { method: "POST" });
     } catch {
-      // 中止请求失败也不影响状态
+      // ignore
     }
 
     store.setStatus("idle");

@@ -46,8 +46,12 @@ export class SSEManager {
 
   publish(taskId: string, event: string, data: unknown): void {
     const payload = { event, data: JSON.stringify(data) };
-    const stream = this.tasks.get(taskId);
-    if (!stream) return;
+    let stream = this.tasks.get(taskId);
+    if (!stream) {
+      // 没有订阅者也要缓存事件，等订阅时再推送
+      stream = { taskId, subscribers: new Set(), events: [], completed: false };
+      this.tasks.set(taskId, stream);
+    }
 
     stream.events.push(payload);
 

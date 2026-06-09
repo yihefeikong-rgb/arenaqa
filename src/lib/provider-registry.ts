@@ -28,7 +28,7 @@ export function registerProvidersFromEnv(): ModelDef[] {
       'deepseek',
       new OpenAICompatProvider({
         name: 'deepseek',
-        apiBase: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com',
+        apiBase: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1',
         apiKey: process.env.DEEPSEEK_API_KEY,
         modelId: 'deepseek-chat',
       })
