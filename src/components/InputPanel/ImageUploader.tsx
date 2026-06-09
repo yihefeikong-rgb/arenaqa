@@ -56,10 +56,10 @@ export function ImageUploader({ images, onChange }: Props) {
               <img
                 src={src}
                 alt={`上传图片 ${i + 1}`}
-                className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
               />
               <button
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center text-[10px] opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                 onClick={() => removeImage(i)}
                 aria-label={`删除图片 ${i + 1}`}
               >

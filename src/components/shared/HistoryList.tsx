@@ -137,7 +137,7 @@ export function HistoryList() {
     <div className="flex flex-col flex-1 min-h-0">
       <div className="px-3 py-2 shrink-0">
         <input
-          className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs bg-gray-50 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/20"
+          className="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/20"
           placeholder="搜索历史..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -146,9 +146,9 @@ export function HistoryList() {
 
       <div className="flex-1 overflow-y-auto px-2 py-1">
         {loading ? (
-          <div className="flex items-center justify-center py-8 text-xs text-gray-400">加载中...</div>
+          <div className="flex items-center justify-center py-8 text-xs text-gray-400 dark:text-gray-500">加载中...</div>
         ) : searchGroups.size === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-500">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mb-2 opacity-40">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -158,11 +158,11 @@ export function HistoryList() {
         ) : (
           Array.from(searchGroups.entries()).map(([dateLabel, dateItems]) => (
             <div key={dateLabel} className="mb-3">
-              <div className="text-[10px] text-gray-400 font-medium px-1.5 mb-1">{dateLabel}</div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 font-medium px-1.5 mb-1">{dateLabel}</div>
               {dateItems.map((item) => (
                 <div
                   key={item.id}
-                  className="group flex items-start gap-1.5 px-1.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="group flex items-start gap-1.5 px-1.5 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   {renamingId === item.id ? (
                     <input
@@ -182,8 +182,8 @@ export function HistoryList() {
                       className="flex-1 min-w-0 cursor-pointer"
                       onClick={() => loadDetail(item.id)}
                     >
-                      <div className="text-xs text-gray-800 truncate">{item.prompt.slice(0, 40)}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">
+                      <div className="text-xs text-gray-800 dark:text-gray-200 truncate">{item.prompt.slice(0, 40)}</div>
+                      <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                         {item.modelCount} 模型 · {new Date(item.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
@@ -191,7 +191,7 @@ export function HistoryList() {
                   {renamingId !== item.id && (
                     <>
                       <button
-                        className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0 transition-all"
+                        className="opacity-60 md:opacity-0 md:group-hover:opacity-100 w-5 h-5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 shrink-0 transition-all"
                         onClick={(e) => {
                           e.stopPropagation();
                           setRenamingId(item.id);
@@ -205,7 +205,7 @@ export function HistoryList() {
                         </svg>
                       </button>
                       <button
-                        className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded hover:bg-red-50 flex items-center justify-center text-red-400 shrink-0 transition-all"
+                        className="opacity-60 md:opacity-0 md:group-hover:opacity-100 w-5 h-5 rounded hover:bg-red-50 flex items-center justify-center text-red-400 shrink-0 transition-all"
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteItem(item.id);
@@ -226,7 +226,7 @@ export function HistoryList() {
       </div>
 
       {items.length > 0 && (
-        <div className="px-3 py-2 border-t border-gray-200 shrink-0">
+        <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 shrink-0">
           <button
             onClick={clearAll}
             className="w-full py-1.5 text-xs text-red-500 hover:bg-red-50 rounded-lg transition-colors font-medium"

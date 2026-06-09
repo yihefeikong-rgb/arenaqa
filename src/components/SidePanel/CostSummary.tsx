@@ -44,24 +44,24 @@ export function CostSummary() {
   const totalCost = entries.reduce((s, e) => s + e.cost, 0);
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
-      <h4 className="text-sm font-semibold text-gray-900 mb-2">成本估算</h4>
+    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">成本估算</h4>
       <div className="space-y-1.5">
         {entries.map((e) => (
           <div key={e.model} className="flex items-center justify-between text-xs">
-            <span className="text-gray-600">{e.name}</span>
-            <span className="text-gray-400">{e.charCount} 字</span>
-            <span className="text-gray-700 font-mono font-medium">${e.cost.toFixed(4)}</span>
+            <span className="text-gray-600 dark:text-gray-400">{e.name}</span>
+            <span className="text-gray-400 dark:text-gray-500">{e.charCount} 字</span>
+            <span className="text-gray-700 dark:text-gray-300 font-mono font-medium">${e.cost.toFixed(4)}</span>
           </div>
         ))}
       </div>
       {totalCost > 0 && (
-        <div className="flex items-center justify-between text-xs font-semibold mt-2 pt-2 border-t border-gray-100">
-          <span className="text-gray-700">会话总计</span>
+        <div className="flex items-center justify-between text-xs font-semibold mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+          <span className="text-gray-700 dark:text-gray-300">会话总计</span>
           <span className="text-indigo-600 font-mono">${totalCost.toFixed(4)}</span>
         </div>
       )}
-      <p className="text-[10px] text-gray-400 mt-1.5">基于字数估算，实际费用以 API 账单为准</p>
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">基于字数估算，实际费用以 API 账单为准</p>
     </div>
   );
 }

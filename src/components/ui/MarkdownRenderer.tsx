@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -9,9 +10,9 @@ interface Props {
   streaming?: boolean;
 }
 
-export function MarkdownRenderer({ content, streaming }: Props) {
+export const MarkdownRenderer = React.memo(function MarkdownRenderer({ content, streaming }: Props) {
   return (
-    <div className="prose prose-sm max-w-none dark:prose-invert">
+    <div className="prose prose-sm max-w-none dark:prose-invert overflow-x-auto [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
@@ -23,4 +24,6 @@ export function MarkdownRenderer({ content, streaming }: Props) {
       )}
     </div>
   );
-}
+});
+
+export default MarkdownRenderer;

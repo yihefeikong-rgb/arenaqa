@@ -156,18 +156,18 @@ export function SettingsModal({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh]" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="absolute inset-0 bg-black/30 dark:bg-black/50" />
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
 
         {/* 头部 + 标签 */}
         <div className="px-5 pt-4 pb-0">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-900">设置</h2>
-            <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400">
+            <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">设置</h2>
+            <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center text-gray-400 dark:text-gray-400">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
-          <div className="flex gap-1 border-b border-gray-200">
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
             {[
               { key: "keys", label: "内置 Key" },
               { key: "judge", label: "裁判模型" },
@@ -177,7 +177,7 @@ export function SettingsModal({ open, onClose }: Props) {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key as typeof tab)}
-                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${tab === t.key ? "border-indigo-500 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${tab === t.key ? "border-indigo-500 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400" : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400"}`}
               >
                 {t.label}
               </button>
@@ -189,16 +189,16 @@ export function SettingsModal({ open, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {tab === "keys" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">API Key 保存在本地浏览器中。可自定义每个模型的具体版本和 API 地址，避免调用到高价模型。</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">API Key 保存在本地浏览器中。可自定义每个模型的具体版本和 API 地址，避免调用到高价模型。</p>
               {BUILTIN_MODELS.map((m) => (
-                <div key={m.id} className="p-3 bg-gray-50 rounded-xl space-y-2">
-                  <div className="text-sm font-bold text-gray-800">{m.name}</div>
+                <div key={m.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-xl space-y-2">
+                  <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{m.name}</div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-0.5">API Key</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">API Key</label>
                     <div className="relative">
                       <input
                         type={visibleKeys.has(m.storagePrefix) ? "text" : "password"}
-                        className="w-full px-2.5 py-1.5 pr-8 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                        className="w-full px-2.5 py-1.5 pr-8 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 dark:bg-gray-700 dark:text-gray-200"
                         placeholder={m.keyHint}
                         value={keys[m.storagePrefix] || ""}
                         onChange={(e) => setKeys((prev) => ({ ...prev, [m.storagePrefix]: e.target.value }))}
@@ -206,7 +206,7 @@ export function SettingsModal({ open, onClose }: Props) {
                       <button
                         type="button"
                         onClick={() => toggleKeyVisibility(m.storagePrefix)}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 rounded"
                         title="显示/隐藏"
                       >
                         {visibleKeys.has(m.storagePrefix) ? (
@@ -218,7 +218,7 @@ export function SettingsModal({ open, onClose }: Props) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-0.5">Base URL</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Base URL</label>
                     <input
                       type="text"
                       className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
@@ -228,7 +228,7 @@ export function SettingsModal({ open, onClose }: Props) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-0.5">Model ID</label>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">Model ID</label>
                     <input
                       type="text"
                       className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
@@ -247,9 +247,9 @@ export function SettingsModal({ open, onClose }: Props) {
 
           {tab === "judge" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">配置 AI 裁判模型。支持任意 OpenAI 兼容 API（如 DeepSeek、通义千问、本地模型等均可作为裁判）。</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">配置 AI 裁判模型。支持任意 OpenAI 兼容 API（如 DeepSeek、通义千问、本地模型等均可作为裁判）。</p>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">裁判 API Base URL</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">裁判 API Base URL</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
@@ -259,7 +259,7 @@ export function SettingsModal({ open, onClose }: Props) {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">裁判 API Key</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">裁判 API Key</label>
                 <div className="relative">
                   <input
                     type={visibleKeys.has("judge") ? "text" : "password"}
@@ -271,7 +271,7 @@ export function SettingsModal({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={() => toggleKeyVisibility("judge")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 rounded"
                     title="显示/隐藏"
                   >
                     {visibleKeys.has("judge") ? (
@@ -283,7 +283,7 @@ export function SettingsModal({ open, onClose }: Props) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">裁判模型 ID</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">裁判模型 ID</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
@@ -300,12 +300,12 @@ export function SettingsModal({ open, onClose }: Props) {
 
           {tab === "nvidia" && (
             <div className="space-y-4">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 NVIDIA NIM 提供免费 API（40 次/分钟），支持 DeepSeek、千问、Kimi、智谱、Llama 等模型。
                 填写 API Key 后，在左侧面板会出现「NVIDIA NIM」区域，可多选模型参赛。
               </p>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">NVIDIA NIM API Key</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">NVIDIA NIM API Key</label>
                 <div className="relative">
                   <input
                     type={visibleKeys.has("nim") ? "text" : "password"}
@@ -317,7 +317,7 @@ export function SettingsModal({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={() => toggleKeyVisibility("nim")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 rounded"
                     title="显示/隐藏"
                   >
                     {visibleKeys.has("nim") ? (
@@ -336,26 +336,26 @@ export function SettingsModal({ open, onClose }: Props) {
 
           {tab === "custom" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">添加任意 OpenAI 兼容 API 模型（如本地 Ollama、第三方中转站等）。</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">添加任意 OpenAI 兼容 API 模型（如本地 Ollama、第三方中转站等）。</p>
 
               {customModels.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <div key={m.id} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg dark:border dark:border-gray-700">
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-800 truncate">{m.name}</div>
-                    <div className="text-[10px] text-gray-400 truncate">{m.apiBase} · {m.modelId}</div>
+                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{m.name}</div>
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{m.apiBase} · {m.modelId}</div>
                   </div>
-                  <button onClick={() => setEditingModel(m)} className="text-xs text-indigo-500 hover:text-indigo-700 px-1">编辑</button>
+                  <button onClick={() => setEditingModel(m)} className="text-xs text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 px-1">编辑</button>
                   <button onClick={() => deleteCustomModel(m.id)} className="text-xs text-red-400 hover:text-red-600 px-1">删除</button>
                 </div>
               ))}
 
               {editingModel ? (
-                <div className="space-y-2 p-3 border border-indigo-200 rounded-lg bg-indigo-50/30">
-                  <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" placeholder="显示名称 (如: 本地Qwen)" value={editingModel.name} onChange={(e) => setEditingModel({ ...editingModel, name: e.target.value })} />
-                  <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" placeholder="API Base URL (如: http://localhost:11434/v1)" value={editingModel.apiBase} onChange={(e) => setEditingModel({ ...editingModel, apiBase: e.target.value })} />
+                <div className="space-y-2 p-3 border border-indigo-200 dark:border-indigo-800 rounded-lg bg-indigo-50/30 dark:bg-gray-800">
+                  <input className="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-gray-200" placeholder="显示名称 (如: 本地Qwen)" value={editingModel.name} onChange={(e) => setEditingModel({ ...editingModel, name: e.target.value })} />
+                  <input className="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-gray-200" placeholder="API Base URL (如: http://localhost:11434/v1)" value={editingModel.apiBase} onChange={(e) => setEditingModel({ ...editingModel, apiBase: e.target.value })} />
                   <div className="relative">
-                    <input className="w-full px-2.5 py-1.5 pr-8 border border-gray-200 rounded text-sm" type={visibleKeys.has("custom-editor") ? "text" : "password"} placeholder="API Key" value={editingModel.apiKey} onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })} />
-                    <button type="button" onClick={() => toggleKeyVisibility("custom-editor")} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded" title="显示/隐藏">
+                    <input className="w-full px-2.5 py-1.5 pr-8 border border-gray-200 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-gray-200" type={visibleKeys.has("custom-editor") ? "text" : "password"} placeholder="API Key" value={editingModel.apiKey} onChange={(e) => setEditingModel({ ...editingModel, apiKey: e.target.value })} />
+                    <button type="button" onClick={() => toggleKeyVisibility("custom-editor")} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 rounded" title="显示/隐藏">
                       {visibleKeys.has("custom-editor") ? (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                       ) : (
@@ -363,14 +363,14 @@ export function SettingsModal({ open, onClose }: Props) {
                       )}
                     </button>
                   </div>
-                  <input className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm" placeholder="Model ID (如: qwen2.5)" value={editingModel.modelId} onChange={(e) => setEditingModel({ ...editingModel, modelId: e.target.value })} />
+                  <input className="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-gray-200" placeholder="Model ID (如: qwen2.5)" value={editingModel.modelId} onChange={(e) => setEditingModel({ ...editingModel, modelId: e.target.value })} />
                   <div className="flex gap-2">
                     <button onClick={saveCustomModel} className="flex-1 py-1.5 bg-indigo-500 text-white rounded text-sm font-medium">保存</button>
-                    <button onClick={() => setEditingModel(null)} className="px-3 py-1.5 border border-gray-200 rounded text-sm text-gray-500">取消</button>
+                    <button onClick={() => setEditingModel(null)} className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm text-gray-500 dark:text-gray-400">取消</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={addCustomModel} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-colors">
+                <button onClick={addCustomModel} className="w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-400 transition-colors">
                   + 添加自定义模型
                 </button>
               )}

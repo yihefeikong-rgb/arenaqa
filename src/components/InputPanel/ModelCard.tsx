@@ -58,8 +58,8 @@ export function ModelCard({ model, enabled = true }: Props) {
       className={`
         relative border-2 rounded-xl p-3.5 transition-all duration-200 text-left w-full
         ${isSelected
-          ? "border-indigo-400 bg-indigo-50/80 shadow-sm"
-          : "border-gray-200 hover:border-indigo-200 hover:-translate-y-0.5 hover:shadow-sm"
+          ? "border-indigo-400 dark:border-indigo-500 bg-indigo-50/80 dark:bg-indigo-950/30 shadow-sm"
+          : "border-gray-200 dark:border-gray-600 hover:border-indigo-200 hover:-translate-y-0.5 hover:shadow-sm"
         }
         ${!clickable ? "opacity-40 cursor-not-allowed hover:translate-y-0 hover:shadow-none" : "cursor-pointer"}
       `}
@@ -74,17 +74,17 @@ export function ModelCard({ model, enabled = true }: Props) {
         <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-[11px] font-bold shrink-0`}>
           {meta.icon}
         </div>
-        <span className="font-semibold text-[13px] text-gray-900">{meta.name}</span>
+        <span className="font-semibold text-[13px] text-gray-900 dark:text-gray-100">{meta.name}</span>
       </div>
 
       <div className="flex items-center gap-1 mb-1 flex-wrap">
-        <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${enabled ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+        <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${enabled ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"}`}>
           {enabled ? "已配置" : "未配置"}
         </span>
       </div>
 
       {meta.desc && (
-        <div className="text-[11px] text-gray-500 leading-tight">{meta.desc}</div>
+        <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{meta.desc}</div>
       )}
     </button>
   );

@@ -1,7 +1,9 @@
 "use client";
 
 import type { FusionResult } from "@/types";
-import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
+import dynamic from "next/dynamic";
+
+const MarkdownRenderer = dynamic(() => import("@/components/ui/MarkdownRenderer"), { ssr: false });
 
 const MODEL_META: Record<string, { name: string; icon: string }> = {
   deepseek: { name: "DeepSeek V3", icon: "D" },

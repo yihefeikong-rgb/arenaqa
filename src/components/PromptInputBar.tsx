@@ -83,6 +83,7 @@ export function PromptInputBar() {
       finalPrompt = `${imgTags}\n\n${prompt}`;
     }
     sendChat(finalPrompt, selectedModels);
+    textareaRef.current?.blur();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -174,12 +175,12 @@ export function PromptInputBar() {
     : "发起对比";
 
   return (
-    <div className="bg-white border-t border-gray-200 p-4 shrink-0">
+    <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-t-gray-700 p-4 shrink-0">
       <div className="max-w-4xl mx-auto">
         <div className="relative">
           <textarea
             ref={textareaRef}
-            className="w-full min-h-[80px] max-h-[200px] resize-none p-3 pb-7 border-[1.5px] border-gray-200 rounded-lg text-sm bg-white text-gray-800 transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+            className="w-full min-h-[80px] max-h-[200px] resize-none p-3 pb-7 border-[1.5px] border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/10"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -194,7 +195,7 @@ export function PromptInputBar() {
           {/* Slash 命令菜单 */}
           {showSlash && matchingCommands.length > 0 && (
             <div
-              className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-10"
+              className="absolute left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden z-10"
               style={{ bottom: "calc(100% + 4px)" }}
             >
               {matchingCommands.map((cmd, i) => (
@@ -202,21 +203,21 @@ export function PromptInputBar() {
                   key={cmd.prefix}
                   type="button"
                   className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 transition-colors ${
-                    i === slashIndex ? "bg-indigo-50 text-indigo-700" : "text-gray-700 hover:bg-gray-50"
+                    i === slashIndex ? "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                   }`}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     applySlashCommand(cmd);
                   }}
                 >
-                  <span className="w-7 h-7 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <span className="w-7 h-7 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-[10px] font-bold shrink-0">
                     /
                   </span>
                   <div>
                     <div className="font-medium text-xs">{cmd.label}</div>
-                    <div className="text-[10px] text-gray-400">{cmd.desc}</div>
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500">{cmd.desc}</div>
                   </div>
-                  <span className="ml-auto text-[10px] text-gray-300 font-mono">{cmd.prefix}</span>
+                  <span className="ml-auto text-[10px] text-gray-300 dark:text-gray-500 font-mono">{cmd.prefix}</span>
                 </button>
               ))}
             </div>

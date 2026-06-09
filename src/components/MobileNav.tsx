@@ -8,12 +8,12 @@ interface Props {
 
 export function MobileNav({ activeTab, onTabChange, hasResults }: Props) {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-t-gray-700 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom,0px)]">
       <button
         type="button"
         onClick={() => onTabChange("models")}
         className={`flex flex-col items-center py-2 px-4 gap-0.5 transition-colors ${
-          activeTab === "models" ? "text-indigo-600" : "text-gray-400"
+          activeTab === "models" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -28,7 +28,7 @@ export function MobileNav({ activeTab, onTabChange, hasResults }: Props) {
         type="button"
         onClick={() => onTabChange("chat")}
         className={`flex flex-col items-center py-2 px-4 gap-0.5 transition-colors ${
-          activeTab === "chat" ? "text-indigo-600" : "text-gray-400"
+          activeTab === "chat" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -41,7 +41,7 @@ export function MobileNav({ activeTab, onTabChange, hasResults }: Props) {
         type="button"
         onClick={() => onTabChange("results")}
         className={`relative flex flex-col items-center py-2 px-4 gap-0.5 transition-colors ${
-          activeTab === "results" ? "text-indigo-600" : "text-gray-400"
+          activeTab === "results" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500"
         }`}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
