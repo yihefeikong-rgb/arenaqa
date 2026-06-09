@@ -5,6 +5,7 @@ import { useChatStore } from "@/stores/chat-store";
 import { useChat } from "@/hooks/useChat";
 import { InputPanel } from "@/components/InputPanel";
 import { AnswerColumn } from "@/components/AnswerColumns/AnswerColumn";
+import { PlaceholderCard } from "@/components/AnswerColumns/PlaceholderCard";
 import { ScoreCard } from "@/components/SidePanel/ScoreCard";
 import { FusionBox } from "@/components/SidePanel/FusionBox";
 import { CostSummary } from "@/components/SidePanel/CostSummary";
@@ -160,16 +161,31 @@ export default function Home() {
               )}
             </div>
             <div className="p-4 flex-1 overflow-y-auto">
-              {!hasAnswers ? (
+              {!hasAnswers && selectedModels.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-16">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-3 opacity-40"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                  <div className="text-sm font-semibold text-gray-600 mb-1">准备开始</div>
-                  <div className="text-xs">选择模型并输入问题，点击发起对比查看各模型回答</div>
+                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-4 opacity-30">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
+                  </svg>
+                  <div className="text-sm font-semibold text-gray-600 mb-1">选择参赛模型</div>
+                  <div className="text-xs mb-4">最多支持 6 个 AI 同时对决</div>
+                  <button
+                    onClick={() => setLeftTab("models")}
+                    className="px-4 py-2 text-xs font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+                  >
+                    去添加模型
+                  </button>
                 </div>
               ) : (
-                <div className={`grid gap-4 ${answerModels.length <= 2 ? "grid-cols-1" : "grid-cols-2"}`}>
+                <div className="grid grid-cols-3 grid-rows-2 gap-4 h-full">
                   {answerModels.map((model) => (
                     <AnswerColumn key={model} model={model} />
+                  ))}
+                  {Array.from({ length: Math.max(0, 6 - answerModels.length) }).map((_, i) => (
+                    <PlaceholderCard
+                      key={`placeholder-${i}`}
+                      index={i}
+                      onClick={() => setLeftTab("models")}
+                    />
                   ))}
                 </div>
               )}
