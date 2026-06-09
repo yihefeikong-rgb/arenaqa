@@ -47,7 +47,7 @@ export function SettingsModal({ open, onClose }: Props) {
   const [baseUrls, setBaseUrls] = useState<Record<string, string>>({});
   const [modelIds, setModelIds] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
-  const [tab, setTab] = useState<"keys" | "custom" | "judge">("keys");
+  const [tab, setTab] = useState<"keys" | "judge" | "custom" | "nvidia">("keys");
 
   // 内置 Key
   const [customModels, setCustomModels] = useState<CustomModel[]>([]);
@@ -57,6 +57,9 @@ export function SettingsModal({ open, onClose }: Props) {
   const [judgeApiKey, setJudgeApiKey] = useState("");
   const [judgeBaseUrl, setJudgeBaseUrl] = useState("");
   const [judgeModelId, setJudgeModelId] = useState("");
+
+  // NVIDIA NIM
+  const [nimApiKey, setNimApiKey] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -75,6 +78,7 @@ export function SettingsModal({ open, onClose }: Props) {
     setJudgeApiKey(localStorage.getItem("arenaqa-JUDGE_API_KEY") || "");
     setJudgeBaseUrl(localStorage.getItem("arenaqa-JUDGE_BASE_URL") || "");
     setJudgeModelId(localStorage.getItem("arenaqa-JUDGE_MODEL") || "gpt-4o");
+    setNimApiKey(localStorage.getItem("arenaqa-NIM_API_KEY") || "");
     setSaved(false);
   }, [open]);
 
@@ -99,6 +103,14 @@ export function SettingsModal({ open, onClose }: Props) {
     if (judgeBaseUrl) localStorage.setItem("arenaqa-JUDGE_BASE_URL", judgeBaseUrl);
     else localStorage.removeItem("arenaqa-JUDGE_BASE_URL");
     localStorage.setItem("arenaqa-JUDGE_MODEL", judgeModelId || "gpt-4o");
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    window.dispatchEvent(new Event("arenaqa-keys-updated"));
+  };
+
+  const handleSaveNim = () => {
+    if (nimApiKey) localStorage.setItem("arenaqa-NIM_API_KEY", nimApiKey);
+    else localStorage.removeItem("arenaqa-NIM_API_KEY");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     window.dispatchEvent(new Event("arenaqa-keys-updated"));
@@ -150,6 +162,7 @@ export function SettingsModal({ open, onClose }: Props) {
               { key: "keys", label: "内置 Key" },
               { key: "judge", label: "裁判模型" },
               { key: "custom", label: "自定义模型" },
+              { key: "nvidia", label: "NVIDIA NIM" },
             ].map((t) => (
               <button
                 key={t.key}
@@ -243,6 +256,28 @@ export function SettingsModal({ open, onClose }: Props) {
               </div>
               <button onClick={handleSaveJudge} className={`w-full py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
                 {saved ? "已保存" : "保存裁判配置"}
+              </button>
+            </div>
+          )}
+
+          {tab === "nvidia" && (
+            <div className="space-y-4">
+              <p className="text-xs text-gray-500">
+                NVIDIA NIM 提供免费 API（40 次/分钟），支持 DeepSeek、千问、Kimi、智谱、Llama 等模型。
+                填写 API Key 后，在左侧面板会出现「NVIDIA NIM」区域，可多选模型参赛。
+              </p>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">NVIDIA NIM API Key</label>
+                <input
+                  type="password"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
+                  placeholder="nvapi-..."
+                  value={nimApiKey}
+                  onChange={(e) => setNimApiKey(e.target.value)}
+                />
+              </div>
+              <button onClick={handleSaveNim} className={`w-full py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
+                {saved ? "已保存" : "保存 NVIDIA NIM"}
               </button>
             </div>
           )}

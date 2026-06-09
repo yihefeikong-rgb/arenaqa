@@ -12,6 +12,27 @@ const SLASH_COMMANDS = [
   { prefix: "/code", label: "代码实现", desc: "编程任务", template: "请用代码实现以下需求，包含关键注释：\n\n" },
 ];
 
+// NVIDIA NIM 模型定义
+const NIM_SMALL_MODELS = [
+  { id: "nim-deepseek-v4-flash", name: "DeepSeek V4 Flash", desc: "快速推理" },
+  { id: "nim-qwen3-next", name: "Qwen3 Next 80B", desc: "轻量千问" },
+  { id: "nim-step-3.5-flash", name: "Step 3.5 Flash", desc: "阶跃星辰" },
+  { id: "nim-gemma-4", name: "Gemma 4 31B", desc: "Google" },
+  { id: "nim-llama-3.1-8b", name: "Llama 3.1 8B", desc: "轻量 Meta" },
+];
+
+const NIM_LARGE_MODELS = [
+  { id: "nim-deepseek-v4-pro", name: "DeepSeek V4 Pro", desc: "DeepSeek 旗舰" },
+  { id: "nim-qwen3.5-122b", name: "Qwen3.5 122B", desc: "阿里千问" },
+  { id: "nim-kimi-k2.6", name: "Kimi K2.6", desc: "月之暗面" },
+  { id: "nim-glm-5.1", name: "GLM 5.1", desc: "智谱" },
+  { id: "nim-minimax-m2.7", name: "MiniMax M2.7", desc: "MiniMax" },
+  { id: "nim-yi-large", name: "Yi Large", desc: "零一万物" },
+  { id: "nim-llama-4", name: "Llama 4 Maverick", desc: "Meta 旗舰" },
+  { id: "nim-llama-3.3-70b", name: "Llama 3.3 70B", desc: "Meta" },
+  { id: "nim-mistral-large3", name: "Mistral Large 3", desc: "Mistral" },
+];
+
 interface ModelInfo {
   id: string;
   displayName: string;
@@ -23,8 +44,7 @@ interface ModelInfo {
 export function InputPanel() {
   const [prompt, setPrompt] = useState("");
   const [modelDefs, setModelDefs] = useState<ModelInfo[]>([]);
-  const [freeHealth, setFreeHealth] = useState<Record<string, string>>({});
-  const [showFree, setShowFree] = useState(false);
+  const [nimKey, setNimKey] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [slashIndex, setSlashIndex] = useState(0);
   const [showSlash, setShowSlash] = useState(false);
@@ -33,6 +53,8 @@ export function InputPanel() {
   const slashRef = useRef<HTMLDivElement>(null);
 
   const selectedModels = useChatStore((s) => s.selectedModels);
+  const selectModel = useChatStore((s) => s.selectModel);
+  const deselectModel = useChatStore((s) => s.deselectModel);
   const status = useChatStore((s) => s.status);
   const { sendChat } = useChat();
 
@@ -50,7 +72,6 @@ export function InputPanel() {
       fetch("/api/models")
         .then((r) => r.json())
         .then((data) => {
-          setFreeHealth(data.freeHealth || {});
           const models: ModelInfo[] = (data.models || []).map((m: { name: string; display_name: string; enabled: boolean; description: string; provider_type: string }) => {
             const lsKey = LS_KEY_MAP[m.name];
             const hasLocalKey = lsKey ? !!localStorage.getItem(`arenaqa-${lsKey}`) : false;
@@ -80,6 +101,7 @@ export function InputPanel() {
             }
           } catch { /* ignore */ }
 
+
           setModelDefs(models);
         })
         .catch(() => {
@@ -93,13 +115,15 @@ export function InputPanel() {
     };
 
     loadModels();
-    window.addEventListener("arenaqa-keys-updated", loadModels);
+    setNimKey(localStorage.getItem("arenaqa-NIM_API_KEY") || "");
+    window.addEventListener("arenaqa-keys-updated", () => {
+      setNimKey(localStorage.getItem("arenaqa-NIM_API_KEY") || "");
+      loadModels();
+    });
     return () => window.removeEventListener("arenaqa-keys-updated", loadModels);
   }, []);
 
-  const paidModels = modelDefs.filter((m) => !m.id.endsWith("-free"));
-  const freeModels = modelDefs.filter((m) => m.id.endsWith("-free"));
-  const visibleModels = showFree ? freeModels : paidModels;
+  const visibleModels = modelDefs;
 
   // 检测 / 命令
   useEffect(() => {
@@ -258,42 +282,73 @@ export function InputPanel() {
         <span className="text-xs text-gray-500">{selectedModels.length}/6</span>
       </div>
 
-      {/* 模型分组标签 */}
-      {freeModels.length > 0 && (
-        <div className="px-4 pt-3 flex gap-1">
-          <button
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!showFree ? "bg-indigo-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-            onClick={() => setShowFree(false)}
-          >
-            付费模型
-          </button>
-          <button
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${showFree ? "bg-green-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-            onClick={() => setShowFree(true)}
-          >
-            免费模型
-            <span className="text-[10px] opacity-75">FREE</span>
-          </button>
-        </div>
-      )}
-
       <div className="p-4 flex-1 overflow-y-auto">
-        {freeModels.length > 0 && showFree && (
-          <div className="mb-2 px-1 py-1.5 bg-yellow-50 border border-yellow-200 rounded-lg text-[10px] text-yellow-700 text-center">
-            ⚠️ 免费模型仅供学习研究，请勿用于商业用途
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-2">
           {visibleModels.map((m) => (
             <ModelCard
               key={m.id}
               model={m.id}
               enabled={m.configured}
-              health={freeHealth[m.id]}
             />
           ))}
         </div>
+
+        {/* NVIDIA NIM 多模型选择 */}
+        {nimKey && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-1.5 mb-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600"><rect x="4" y="4" width="16" height="16" rx="2" /><polyline points="9 12 11 14 15 10" /></svg>
+              <span className="text-sm font-semibold text-gray-900">NVIDIA NIM</span>
+              <span className="text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded-full">40次/分钟 · 免费</span>
+            </div>
+
+            <div className="mb-2">
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="text-xs font-medium text-amber-600">⚡ 快速小模型</span>
+                <span className="text-[10px] text-gray-400">适合简单问答</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {NIM_SMALL_MODELS.map((m) => {
+                  const isSelected = selectedModels.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                        isSelected ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-500"
+                      }`}
+                    >
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1.5">
+                <span className="text-xs font-medium text-purple-600">🦾 大参数模型</span>
+                <span className="text-[10px] text-gray-400">高质量长回答</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {NIM_LARGE_MODELS.map((m) => {
+                  const isSelected = selectedModels.includes(m.id);
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                        isSelected ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-500"
+                      }`}
+                    >
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-5">
           <label className="text-sm font-semibold text-gray-900 block mb-2">输入问题</label>

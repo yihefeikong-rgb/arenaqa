@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const hasKey = body.apiKeys ? Object.keys(body.apiKeys) : [];
     const customIds = (body.customModels || []).map((m) => m.id);
     const allValid = [...registered, ...hasKey, ...customIds];
-    const invalid = body.models.filter((m) => !allValid.includes(m) && !m.endsWith('-free'));
+    const invalid = body.models.filter((m) => !allValid.includes(m) && !m.startsWith("nim-"));
     if (invalid.length > 0) {
       return NextResponse.json(
         { detail: `Invalid models: ${invalid.join(', ')}` },

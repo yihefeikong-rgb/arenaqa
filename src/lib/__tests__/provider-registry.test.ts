@@ -9,9 +9,6 @@ beforeEach(() => {
 function clearAllApiKeys() {
   const keys = [
     'DEEPSEEK_API_KEY', 'QWEN_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY',
-    'FREE_KIMI_FREE_TOKEN', 'FREE_QWEN_FREE_TOKEN', 'FREE_DEEPSEEK_FREE_TOKEN',
-    'FREE_DOUBAO_FREE_TOKEN', 'FREE_GLM_FREE_TOKEN', 'FREE_SPARK_FREE_TOKEN',
-    'FREE_STEP_FREE_TOKEN',
   ];
   for (const k of keys) vi.stubEnv(k, '');
 }
@@ -56,33 +53,6 @@ describe('provider-registry', () => {
       expect(ids).toContain('qwen');
       expect(ids).toContain('claude');
       expect(ids).toContain('gemini');
-    });
-
-    it('should include free models with tokens configured', async () => {
-      clearAllApiKeys();
-      vi.stubEnv('FREE_KIMI_FREE_TOKEN', 'kimi-token');
-      vi.stubEnv('FREE_QWEN_FREE_TOKEN', 'qwen-token');
-
-      const { registerProvidersFromEnv } = await import('@/lib/provider-registry');
-      const defs = registerProvidersFromEnv();
-
-      const kimi = defs.find((d) => d.id === 'kimi-free');
-      expect(kimi).toBeDefined();
-      expect(kimi!.configured).toBe(true);
-
-      const qwenFree = defs.find((d) => d.id === 'qwen-free');
-      expect(qwenFree).toBeDefined();
-      expect(qwenFree!.configured).toBe(true);
-    });
-
-    it('should mark free model as unconfigured when token is absent', async () => {
-      clearAllApiKeys();
-      const { registerProvidersFromEnv } = await import('@/lib/provider-registry');
-      const defs = registerProvidersFromEnv();
-
-      const kimi = defs.find((d) => d.id === 'kimi-free');
-      expect(kimi).toBeDefined();
-      expect(kimi!.configured).toBe(false);
     });
 
     it('each def should have required fields', async () => {

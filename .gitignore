@@ -8,9 +8,6 @@ prisma/migrations/
 dist/
 build/
 
-# Cookie 文件（含登录态，禁止提交）
-cookies.json
-
 # 大图文件
 *.png
 *.jpg
@@ -24,9 +21,6 @@ coverage/
 # IDE 元数据
 .codegraph/
 .reasonix/
-
-# Cookie 刷新脚本缓存
-.cookie-cache/
 
 # 交接文档（内部参考，不提交）
 HANDOFF-NEXT.md

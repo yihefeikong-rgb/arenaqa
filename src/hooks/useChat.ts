@@ -50,6 +50,36 @@ export function useChat() {
           }
         } catch { /* ignore */ }
 
+        // NVIDIA NIM — 按模型 ID 映射
+        const nimKey = localStorage.getItem("arenaqa-NIM_API_KEY");
+        const NIM_MODEL_MAP: Record<string, string> = {
+          "nim-deepseek-v4-flash": "deepseek-ai/deepseek-v4-flash",
+          "nim-deepseek-v4-pro": "deepseek-ai/deepseek-v4-pro",
+          "nim-qwen3-next": "qwen/qwen3-next-80b-a3b-instruct",
+          "nim-qwen3.5-122b": "qwen/qwen3.5-122b-a10b",
+          "nim-step-3.5-flash": "stepfun-ai/step-3.5-flash",
+          "nim-gemma-4": "google/gemma-4-31b-it",
+          "nim-llama-3.1-8b": "meta/llama-3.1-8b-instruct",
+          "nim-kimi-k2.6": "moonshotai/kimi-k2.6",
+          "nim-glm-5.1": "z-ai/glm-5.1",
+          "nim-minimax-m2.7": "minimaxai/minimax-m2.7",
+          "nim-yi-large": "01-ai/yi-large",
+          "nim-llama-4": "meta/llama-4-maverick-17b-128e-instruct",
+          "nim-llama-3.3-70b": "meta/llama-3.3-70b-instruct",
+          "nim-mistral-large3": "mistralai/mistral-large-3-675b-instruct-2512",
+        };
+        models.forEach((m) => {
+          const realModelId = NIM_MODEL_MAP[m];
+          if (realModelId && nimKey) {
+            customModels.push({
+              id: m,
+              name: "NVIDIA NIM",
+              apiBase: "https://integrate.api.nvidia.com/v1",
+              modelId: realModelId,
+            });
+          }
+        });
+
         // 自定义模型的 Key
         const CUSTOM_KEYS: Record<string, string> = {};
         try {
@@ -60,6 +90,11 @@ export function useChat() {
             });
           }
         } catch { /* ignore */ }
+        if (nimKey) {
+          models.forEach((m) => {
+            if (m.startsWith("nim-")) CUSTOM_KEYS[m] = nimKey;
+          });
+        }
 
         // 裁判模型配置
         const judgeKey = localStorage.getItem("arenaqa-JUDGE_API_KEY");

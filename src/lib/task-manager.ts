@@ -79,22 +79,15 @@ class TaskManager {
       case "gemini":
         return new GoogleProvider({ apiKey, modelId: overrideModelId || process.env.GEMINI_MODEL_ID });
       default:
-        // 检查免费模型（以 -free 结尾）
-        if (modelName.endsWith("-free")) {
-          const freeModel = this.providers.get(modelName);
-          if (freeModel) return freeModel;
-        }
-        // 检查自定义模型（以 custom- 开头）
-        if (modelName.startsWith("custom-")) {
-          const def = this._customModels.find((m) => m.id === modelName);
-          if (def) {
-            return new OpenAICompatProvider({
-              name: modelName,
-              apiBase: def.apiBase,
-              apiKey,
-              modelId: def.modelId,
-            });
-          }
+        // 检查自定义模型（custom- 开头的 + nim- 开头的等）
+        const def = this._customModels.find((m) => m.id === modelName);
+        if (def) {
+          return new OpenAICompatProvider({
+            name: modelName,
+            apiBase: def.apiBase,
+            apiKey,
+            modelId: def.modelId,
+          });
         }
         throw new Error(`Unknown model: ${modelName}`);
     }

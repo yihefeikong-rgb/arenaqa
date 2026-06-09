@@ -7,7 +7,6 @@ import { taskManager } from './task-manager';
 import { OpenAICompatProvider } from './providers/openai-compat';
 import { AnthropicProvider } from './providers/anthropic';
 import { GoogleProvider } from './providers/google';
-import { FREE_MODELS } from '@/config/freeModels';
 
 export type ModelDef = {
   id: string;
@@ -129,37 +128,6 @@ export function registerProvidersFromEnv(): ModelDef[] {
       description: '需配置 GEMINI_API_KEY',
       configured: false,
     });
-  }
-
-  // ---- 免费模型（Docker 本地部署） ----
-  for (const fm of FREE_MODELS) {
-    const envKey = `FREE_${fm.id.toUpperCase().replace(/-/g, "_")}_TOKEN`;
-    if (process.env[envKey]) {
-      taskManager.registerProvider(
-        fm.id,
-        new OpenAICompatProvider({
-          name: fm.id,
-          apiBase: `http://localhost:${fm.port}/v1`,
-          apiKey: process.env[envKey]!,
-          modelId: fm.modelId,
-        })
-      );
-      defs.push({
-        id: fm.id,
-        displayName: fm.name,
-        providerType: "openai_compat",
-        description: `${fm.description}（免费 · 本地 Docker）`,
-        configured: true,
-      });
-    } else {
-      defs.push({
-        id: fm.id,
-        displayName: fm.name,
-        providerType: "openai_compat",
-        description: `免费模型 · 需部署 Docker`,
-        configured: false,
-      });
-    }
   }
 
   return defs;
