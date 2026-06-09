@@ -1,4 +1,5 @@
 // GET /api/history/[id] — 详情
+// PATCH /api/history/[id] — 重命名
 // DELETE /api/history/[id] — 删除单条
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
@@ -57,5 +58,22 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    await prisma.conversation.update({
+      where: { id },
+      data: { prompt: body.prompt },
+    });
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }

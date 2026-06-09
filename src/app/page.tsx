@@ -10,6 +10,7 @@ import { FusionBox } from "@/components/SidePanel/FusionBox";
 import { CostSummary } from "@/components/SidePanel/CostSummary";
 import { SettingsModal } from "@/components/shared/SettingsModal";
 import { HistoryList } from "@/components/shared/HistoryList";
+import { PromptInputBar } from "@/components/PromptInputBar";
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string; bg: string; border: string; textColor: string }> = {
   idle: { label: "就绪", dotColor: "bg-gray-400", bg: "bg-gray-100", border: "border-gray-200", textColor: "text-gray-600" },
@@ -58,7 +59,7 @@ export default function Home() {
   const answerModels = [...new Set([...selectedModels, ...Object.keys(answers)])];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-dvh bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
@@ -114,7 +115,7 @@ export default function Home() {
 
       {/* Main */}
       <main className="flex flex-1" style={{ maxWidth: 2200, margin: "0 auto" }}>
-        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_300px] gap-3 lg:gap-4 min-w-0">
+        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-3 lg:gap-4 min-w-0 min-h-0">
         {/* Left: Models / History tabs */}
         <section className="min-h-0 flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex border-b border-gray-200 shrink-0">
@@ -146,9 +147,9 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Center: Answers */}
-        <section className="min-h-0 flex flex-col">
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col flex-1">
+        {/* Center: Answers + Input */}
+        <section className="min-h-0 flex flex-col min-w-0">
+          <div className="flex-1 min-h-0 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
             <div className="px-4 py-3 border-b border-gray-200 shrink-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">模型回答</h3>
@@ -174,6 +175,7 @@ export default function Home() {
               )}
             </div>
           </div>
+          <PromptInputBar />
         </section>
 
         {/* Right: Results */}
@@ -204,11 +206,6 @@ export default function Home() {
         </section>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="text-center py-3 text-xs text-gray-400 flex-shrink-0">
-        ArenaQA · Next.js 15 · SSE 流式
-      </footer>
 
       {/* Mobile History Overlay */}
       {!historyCollapsed && (

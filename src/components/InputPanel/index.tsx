@@ -1,16 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useChatStore } from "@/stores/chat-store";
-import { useChat } from "@/hooks/useChat";
 import { ModelCard } from "./ModelCard";
-import { ImageUploader } from "./ImageUploader";
-
-const SLASH_COMMANDS = [
-  { prefix: "/compare", label: "对比分析", desc: "多模型对比", template: "请对比分析以下内容，列出各自的优缺点：\n\n" },
-  { prefix: "/explain", label: "详细解释", desc: "深入讲解概念", template: "请详细解释以下概念，适合初学者理解：\n\n" },
-  { prefix: "/code", label: "代码实现", desc: "编程任务", template: "请用代码实现以下需求，包含关键注释：\n\n" },
-];
 
 // NVIDIA NIM 模型定义
 const NIM_SMALL_MODELS = [
@@ -33,6 +25,13 @@ const NIM_LARGE_MODELS = [
   { id: "nim-mistral-large3", name: "Mistral Large 3", desc: "Mistral" },
 ];
 
+const MODEL_GRADIENT: Record<string, string> = {
+  deepseek: "from-blue-500 to-cyan-500",
+  qwen: "from-violet-500 to-pink-500",
+  claude: "from-amber-500 to-orange-500",
+  gemini: "from-emerald-500 to-teal-500",
+};
+
 interface ModelInfo {
   id: string;
   displayName: string;
@@ -41,24 +40,28 @@ interface ModelInfo {
   providerType: string;
 }
 
+function getMeta(model: string, modelDefs: ModelInfo[]): { name: string; icon: string } {
+  const def = modelDefs.find((m) => m.id === model);
+  if (def) return { name: def.displayName, icon: def.displayName.slice(0, 2).toUpperCase() };
+  const allNim = [...NIM_SMALL_MODELS, ...NIM_LARGE_MODELS];
+  const nim = allNim.find((m) => m.id === model);
+  if (nim) return { name: nim.name, icon: nim.name.slice(0, 2).toUpperCase() };
+  return { name: model, icon: model.slice(0, 2).toUpperCase() };
+}
+
+function getGradient(model: string): string {
+  return MODEL_GRADIENT[model] || "from-gray-500 to-gray-400";
+}
+
 export function InputPanel() {
-  const [prompt, setPrompt] = useState("");
   const [modelDefs, setModelDefs] = useState<ModelInfo[]>([]);
   const [nimKey, setNimKey] = useState("");
-  const [images, setImages] = useState<string[]>([]);
-  const [slashIndex, setSlashIndex] = useState(0);
-  const [showSlash, setShowSlash] = useState(false);
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const slashRef = useRef<HTMLDivElement>(null);
+  const [showSelector, setShowSelector] = useState(false);
 
   const selectedModels = useChatStore((s) => s.selectedModels);
   const selectModel = useChatStore((s) => s.selectModel);
   const deselectModel = useChatStore((s) => s.deselectModel);
-  const status = useChatStore((s) => s.status);
-  const { sendChat } = useChat();
 
-  // 模型名 → localStorage Key 映射
   const LS_KEY_MAP: Record<string, string> = {
     deepseek: "DEEPSEEK_API_KEY",
     qwen: "QWEN_API_KEY",
@@ -66,7 +69,6 @@ export function InputPanel() {
     gemini: "GEMINI_API_KEY",
   };
 
-  // 获取模型配置状态（合并 .env + 前端设置面板的 Key + 自定义模型）
   useEffect(() => {
     const loadModels = () => {
       fetch("/api/models")
@@ -84,7 +86,6 @@ export function InputPanel() {
             };
           });
 
-          // 合并自定义模型
           try {
             const raw = localStorage.getItem("arenaqa-custom-models");
             if (raw) {
@@ -100,7 +101,6 @@ export function InputPanel() {
               });
             }
           } catch { /* ignore */ }
-
 
           setModelDefs(models);
         })
@@ -123,318 +123,151 @@ export function InputPanel() {
     return () => window.removeEventListener("arenaqa-keys-updated", loadModels);
   }, []);
 
-  const visibleModels = modelDefs;
-
-  // 检测 / 命令
-  useEffect(() => {
-    const cursorPos = textareaRef.current?.selectionStart ?? prompt.length;
-    const textBeforeCursor = prompt.slice(0, cursorPos);
-    const lastSlash = textBeforeCursor.lastIndexOf("/");
-
-    if (lastSlash !== -1) {
-      const afterSlash = textBeforeCursor.slice(lastSlash);
-      const isNewWord = lastSlash === 0 || textBeforeCursor[lastSlash - 1] === " " || textBeforeCursor[lastSlash - 1] === "\n";
-      if (isNewWord && !afterSlash.includes(" ")) {
-        const matching = SLASH_COMMANDS.filter((c) => c.prefix.startsWith(afterSlash));
-        setShowSlash(matching.length > 0);
-        setSlashIndex(0);
-        return;
-      }
-    }
-    setShowSlash(false);
-  }, [prompt]);
-
-  const applySlashCommand = useCallback(
-    (cmd: (typeof SLASH_COMMANDS)[0]) => {
-      const cursorPos = textareaRef.current?.selectionStart ?? prompt.length;
-      const textBeforeCursor = prompt.slice(0, cursorPos);
-      const lastSlash = textBeforeCursor.lastIndexOf("/");
-      const textAfterCursor = prompt.slice(cursorPos);
-
-      const newPrompt = prompt.slice(0, lastSlash) + cmd.template + textAfterCursor;
-      setPrompt(newPrompt);
-      setShowSlash(false);
-
-      const newCursorPos = lastSlash + cmd.template.length;
-      requestAnimationFrame(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
-        }
-      });
-    },
-    [prompt]
-  );
-
-  const matchingCommands = useMemo(() => {
-    const cursorPos = textareaRef.current?.selectionStart ?? prompt.length;
-    const textBeforeCursor = prompt.slice(0, cursorPos);
-    const lastSlash = textBeforeCursor.lastIndexOf("/");
-    if (lastSlash === -1) return [];
-    const afterSlash = textBeforeCursor.slice(lastSlash);
-    return SLASH_COMMANDS.filter((c) => c.prefix.startsWith(afterSlash));
-  }, [prompt]);
-
-  const canSend = prompt.trim().length > 0 && selectedModels.length > 0 && status === "idle";
-
-  const handleSend = () => {
-    if (!canSend) return;
-    let finalPrompt = prompt;
-    if (images.length > 0) {
-      const imgTags = images.map((src) => `![image](${src})`).join("\n");
-      finalPrompt = `${imgTags}\n\n${prompt}`;
-    }
-    sendChat(finalPrompt, selectedModels);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showSlash) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setSlashIndex((prev) => (prev + 1) % matchingCommands.length);
-        return;
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setSlashIndex((prev) => (prev - 1 + matchingCommands.length) % matchingCommands.length);
-        return;
-      }
-      if (e.key === "Enter" && matchingCommands.length > 0) {
-        e.preventDefault();
-        applySlashCommand(matchingCommands[slashIndex]);
-        return;
-      }
-      if (e.key === "Escape") {
-        setShowSlash(false);
-        return;
-      }
-    }
-
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  // 粘贴图片
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith("image/")) {
-          e.preventDefault();
-          const file = items[i].getAsFile();
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const dataUrl = reader.result as string;
-              setImages((prev) => {
-                if (prev.length >= 3) return prev;
-                return [...prev, dataUrl];
-              });
-            };
-            reader.readAsDataURL(file);
-          }
-          break;
-        }
-      }
-    },
-    []
-  );
-
-  // 拖拽图片
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const files = e.dataTransfer?.files;
-    if (!files) return;
-    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    if (imageFiles.length === 0) return;
-
-    const readers = imageFiles.map((file) => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then((dataUrls) => {
-      setImages((prev) => {
-        const remaining = 3 - prev.length;
-        return [...prev, ...dataUrls.slice(0, remaining)];
-      });
-    });
-  }, []);
-
-  const btnLabel =
-    status === "streaming" ? "生成中..."
-    : status === "judging" ? "评分中..."
-    : status === "fusing" ? "融合中..."
-    : images.length > 0 ? `发起对比 (含${images.length}图)`
-    : "发起对比";
+  const isFull = selectedModels.length >= 6;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">选择参赛模型</h3>
-        <span className="text-xs text-gray-500">{selectedModels.length}/6</span>
-      </div>
-
-      <div className="p-4 flex-1 overflow-y-auto">
-        <div className="grid grid-cols-2 gap-2">
-          {visibleModels.map((m) => (
-            <ModelCard
-              key={m.id}
-              model={m.id}
-              enabled={m.configured}
-            />
-          ))}
+    <div className="flex flex-col h-full">
+      {/* 选中列表区域 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex items-center justify-between px-3 py-2.5">
+          <span className="text-xs font-semibold text-gray-700">已选模型</span>
+          <span className="text-[10px] text-gray-400">{selectedModels.length}/6</span>
         </div>
 
-        {/* NVIDIA NIM 多模型选择 */}
-        {nimKey && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center gap-1.5 mb-3">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600"><rect x="4" y="4" width="16" height="16" rx="2" /><polyline points="9 12 11 14 15 10" /></svg>
-              <span className="text-sm font-semibold text-gray-900">NVIDIA NIM</span>
-              <span className="text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded-full">40次/分钟 · 免费</span>
-            </div>
-
-            <div className="mb-2">
-              <div className="flex items-center gap-1 mb-1.5">
-                <span className="text-xs font-medium text-amber-600">⚡ 快速小模型</span>
-                <span className="text-[10px] text-gray-400">适合简单问答</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {NIM_SMALL_MODELS.map((m) => {
-                  const isSelected = selectedModels.includes(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                        isSelected ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-500"
-                      }`}
-                    >
-                      {m.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-1 mb-1.5">
-                <span className="text-xs font-medium text-purple-600">🦾 大参数模型</span>
-                <span className="text-[10px] text-gray-400">高质量长回答</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {NIM_LARGE_MODELS.map((m) => {
-                  const isSelected = selectedModels.includes(m.id);
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                        isSelected ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-500"
-                      }`}
-                    >
-                      {m.name}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+        {selectedModels.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mb-2 opacity-40">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+            <div className="text-xs">尚未选择模型</div>
+            <div className="text-[10px] mt-0.5">点击下方按钮添加参赛模型</div>
+          </div>
+        ) : (
+          <div className="px-2 space-y-0.5">
+            {selectedModels.map((model) => {
+              const meta = getMeta(model, modelDefs);
+              const gradient = getGradient(model);
+              return (
+                <div key={model} className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 group transition-colors">
+                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-[10px] font-bold shrink-0`}>
+                    {meta.icon}
+                  </div>
+                  <span className="text-xs text-gray-700 flex-1 truncate">{meta.name}</span>
+                  <button
+                    onClick={() => deselectModel(model)}
+                    className="w-5 h-5 rounded hover:bg-red-50 flex items-center justify-center text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                    title="移除"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
+      </div>
 
-        <div className="mt-5">
-          <label className="text-sm font-semibold text-gray-900 block mb-2">输入问题</label>
-          <div className="relative">
-            <textarea
-              ref={textareaRef}
-              className="w-full min-h-[100px] resize-y p-3 pb-7 border-[1.5px] border-gray-200 rounded-lg text-sm bg-white text-gray-800 transition-all focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              placeholder="什么是量子计算？它与传统计算机有什么区别？"
-              maxLength={4000}
-            />
-
-            {/* Slash 命令菜单 */}
-            {showSlash && matchingCommands.length > 0 && (
-              <div
-                ref={slashRef}
-                className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-10"
-                style={{ bottom: "calc(100% + 4px)" }}
-              >
-                {matchingCommands.map((cmd, i) => (
-                  <button
-                    key={cmd.prefix}
-                    type="button"
-                    className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 transition-colors ${
-                      i === slashIndex ? "bg-indigo-50 text-indigo-700" : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      applySlashCommand(cmd);
-                    }}
-                  >
-                    <span className="w-7 h-7 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      /
-                    </span>
-                    <div>
-                      <div className="font-medium text-xs">{cmd.label}</div>
-                      <div className="text-[10px] text-gray-400">{cmd.desc}</div>
-                    </div>
-                    <span className="ml-auto text-[10px] text-gray-300 font-mono">{cmd.prefix}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <span className="absolute bottom-2 right-3 text-[11px] text-gray-400">{prompt.length} / 4000</span>
-
-            {/* 提示：Slash 可用 */}
-            {!showSlash && prompt === "" && (
-              <span className="absolute bottom-2 left-3 text-[11px] text-gray-300">
-                输入 / 使用快捷指令
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 图片上传器 */}
-        <div className="mt-2">
-          <ImageUploader images={images} onChange={setImages} />
-        </div>
-
+      {/* 添加模型按钮 */}
+      <div className="px-3 py-2.5 border-t border-gray-100 shrink-0">
         <button
           type="button"
-          disabled={!canSend}
-          onClick={handleSend}
-          className={`w-full mt-3 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-1.5 transition-all ${
-            canSend
-              ? "bg-indigo-500 text-white hover:bg-indigo-600 active:bg-indigo-700 hover:shadow-sm"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          onClick={() => setShowSelector(true)}
+          disabled={isFull}
+          className={`w-full py-2 text-xs font-medium border-2 border-dashed rounded-lg transition-colors ${
+            isFull
+              ? "border-gray-200 text-gray-300 cursor-not-allowed"
+              : "border-gray-300 text-gray-500 hover:border-indigo-300 hover:text-indigo-600"
           }`}
         >
-          {status !== "idle" && (
-            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          )}
-          {btnLabel}
+          + 添加模型
         </button>
-
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-700">提示</strong><br />
-          选择 2-4 个模型进行对比。输入 / 可使用快捷指令。支持粘贴或拖拽上传图片（最多 3 张）。
-        </div>
       </div>
+
+      {/* 模型选择弹窗 */}
+      {showSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowSelector(false)}>
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
+              <h3 className="text-sm font-semibold text-gray-900">添加参赛模型</h3>
+              <button onClick={() => setShowSelector(false)} className="w-6 h-6 rounded hover:bg-gray-100 flex items-center justify-center text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2">
+                {modelDefs.map((m) => (
+                  <ModelCard key={m.id} model={m.id} enabled={m.configured} />
+                ))}
+              </div>
+
+              {nimKey && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600"><rect x="4" y="4" width="16" height="16" rx="2" /><polyline points="9 12 11 14 15 10" /></svg>
+                    <span className="text-sm font-semibold text-gray-900">NVIDIA NIM</span>
+                    <span className="text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded-full">免费</span>
+                  </div>
+
+                  <div className="mb-2">
+                    <div className="text-xs font-medium text-amber-600 mb-1.5">⚡ 快速小模型</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {NIM_SMALL_MODELS.map((m) => {
+                        const isSelected = selectedModels.includes(m.id);
+                        return (
+                          <button key={m.id}
+                            onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                              isSelected ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-500"
+                            }`}
+                          >
+                            {m.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-medium text-purple-600 mb-1.5">🦾 大参数模型</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {NIM_LARGE_MODELS.map((m) => {
+                        const isSelected = selectedModels.includes(m.id);
+                        return (
+                          <button key={m.id}
+                            onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                              isSelected ? "bg-indigo-50 border-indigo-300 text-indigo-700" : "border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-500"
+                            }`}
+                          >
+                            {m.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 py-3 border-t border-gray-200 shrink-0">
+              <button
+                onClick={() => setShowSelector(false)}
+                className="w-full py-2 rounded-lg text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+              >
+                完成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
