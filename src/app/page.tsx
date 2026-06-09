@@ -23,6 +23,7 @@ export default function Home() {
   const status = useChatStore((s) => s.status);
   const selectedModels = useChatStore((s) => s.selectedModels);
   const answers = useChatStore((s) => s.answers);
+  const lastPrompt = useChatStore((s) => s.lastPrompt);
   const scores = useChatStore((s) => s.scores);
   const fusion = useChatStore((s) => s.fusion);
   const { abortChat } = useChat();
@@ -53,9 +54,9 @@ export default function Home() {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
   const hasAnswers = Object.keys(answers).length > 0;
   const hasResults = scores.length > 0;
-  // 显示当前选中或已有回答的模型（去重），确保发送后立刻看到每个模型的卡片
   const answerModels = [...new Set([...selectedModels, ...Object.keys(answers)])];
   const cols = answerModels.length <= 2 ? 1 : 2;
+  const maxAnswerWidth = answerModels.length === 1 ? "max-w-3xl" : "";
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -127,9 +128,14 @@ export default function Home() {
         {/* Center: Answers */}
         <section className="min-h-0 flex flex-col">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col flex-1">
-            <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2 shrink-0">
-              <h3 className="text-sm font-semibold text-gray-900">模型回答</h3>
-              <span className="text-xs text-gray-500">{answerModels.length} 个模型</span>
+            <div className="px-4 py-3 border-b border-gray-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-900">模型回答</h3>
+                <span className="text-xs text-gray-500">{answerModels.length} 个模型</span>
+              </div>
+              {lastPrompt && hasAnswers && (
+                <div className="text-xs text-gray-400 mt-1 truncate">问: {lastPrompt}</div>
+              )}
             </div>
             <div className="p-4 flex-1 overflow-y-auto">
               {!hasAnswers ? (
@@ -139,7 +145,7 @@ export default function Home() {
                   <div className="text-xs">选择模型并输入问题，点击发起对比查看各模型回答</div>
                 </div>
               ) : (
-                <div className={`grid gap-4 ${cols === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                <div className={`grid gap-4 ${cols === 1 ? "grid-cols-1" : "grid-cols-2"} ${maxAnswerWidth} mx-auto`}>
                   {answerModels.map((model) => (
                     <AnswerColumn key={model} model={model} />
                   ))}
