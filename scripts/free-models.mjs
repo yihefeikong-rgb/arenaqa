@@ -37,8 +37,11 @@ function log(msg, ok = null) {
 }
 
 function run(cmd, opts = {}) {
+  // Windows 下用 cmd.exe，其他用 bash
+  const isWin = process.platform === "win32";
+  const shell = isWin ? "cmd.exe" : "bash";
   try {
-    const out = execSync(cmd, { encoding: "utf8", shell: "bash", timeout: opts.timeout || 30000, ...opts });
+    const out = execSync(cmd, { encoding: "utf8", shell, timeout: opts.timeout || 30000, ...opts });
     return { ok: true, out: out.trim() };
   } catch (e) {
     return { ok: false, out: (e.stdout || "").trim(), err: (e.stderr || "").trim() || e.message };
@@ -47,9 +50,11 @@ function run(cmd, opts = {}) {
 
 function wb(action, args = {}) {
   const payload = JSON.stringify({ action, args, session: "free-models" });
-  const tmp = join(CACHE, `${Date.now()}.json`);
-  writeFileSync(tmp, payload, "utf8");
-  const r = run(`curl -s --max-time 30 -X POST ${WB_API}/command -H "Content-Type: application/json" -d @"${tmp}"`);
+  // Windows 用 stdin pipe，类 Unix 用 @file
+  const isWin = process.platform === "win32";
+  const r = isWin
+    ? run(`echo ${payload.replace(/%/g, "%%")} | curl -s --max-time 30 -X POST ${WB_API}/command -H "Content-Type: application/json" -d @-`)
+    : run(`curl -s --max-time 30 -X POST ${WB_API}/command -H "Content-Type: application/json" -d '${payload}'`);
   if (r.ok) {
     try { return JSON.parse(r.out); } catch { return { ok: false, error: "parse fail" }; }
   }
@@ -63,37 +68,37 @@ function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 async function step1_startWebBridge() {
   console.log("\n[1/5] Kimi WebBridge");
   // 先检查是否在运行
+  // 检查方式: 先用 curl 测，不行就 fallback 到看 daemon 状态
   const check = run(`curl -s -o /dev/null -w "%{http_code}" --max-time 3 ${WB_API}/command`);
   if (check.ok && check.out !== "000") {
     log("WebBridge 已在运行", true);
-    return;
+    return true;
   }
-  // 启动
-  const start = run(`"${WB_BIN}" start 2>&1`);
+  // curl 可能不通（Windows 网络问题），看看 daemon 状态
+  const status = run(`"${WB_BIN}" status 2>&1`);
+  if (status.ok && status.out.includes('"running":true')) {
+    log("WebBridge 运行中（状态检测）", true);
+    return true;
+  }
+  // 尝试启动
   log("启动 WebBridge 守护进程...", null);
-  await sleep(4000);
-  // 确认
-  const retry = run(`curl -s -o /dev/null -w "%{http_code}" --max-time 3 ${WB_API}/command`);
-  if (retry.ok && retry.out !== "000") {
+  run(`"${WB_BIN}" start 2>&1`);
+  await sleep(6000);
+  // 再检查
+  const retry = run(`"${WB_BIN}" status 2>&1`);
+  if (retry.ok && retry.out.includes('"running":true')) {
     log("WebBridge 已就绪", true);
-  } else {
-    log("WebBridge 启动失败，尝试重置...", false);
-    run(`"${WB_BIN}" stop 2>/dev/null`);
-    await sleep(2000);
-    // 清理残留 PID
-    try { execSync("taskkill /F /IM kimi-webbridge 2>/dev/null", { shell: "bash" }); } catch {}
-    await sleep(1000);
-    const retry2 = run(`"${WB_BIN}" start 2>&1`);
-    await sleep(6000);
-    const final = run(`curl -s -o /dev/null -w "%{http_code}" --max-time 3 ${WB_API}/command`);
-    if (final.ok && final.out !== "000") {
-      log("WebBridge 已就绪（重试后）", true);
-    } else {
-      console.log("  [FATAL] WebBridge 无法启动，请手动运行: ~/.kimi-webbridge/bin/kimi-webbridge start");
-      return false;
-    }
+    return true;
   }
-  return true;
+  // 最后尝试：直接启动并把端口打开，跳过 curl 检测
+  const tryPort = run(`netstat -ano | findstr ":10086" | findstr "LISTEN"`);
+  if (tryPort.ok) {
+    log("WebBridge 端口已监听（绕过检测）", true);
+    return true;
+  }
+  log("WebBridge 无法启动，跳过后续步骤", false);
+  console.log("  如果你已有 Cookie，可直接修改 .env 后手动运行 Docker");
+  return false;
 }
 
 async function step2_refreshCookies() {
@@ -133,7 +138,7 @@ async function step2_refreshCookies() {
 
 async function step3_rebuildDocker() {
   console.log("\n[3/5] 重建 Docker 容器");
-  const r = run(`cd "${ROOT}" && docker compose -f docker-compose.free.yml up -d --force-recreate 2>&1`, { timeout: 120000 });
+  const r = run(`cd /d "${ROOT}" 2>nul && docker compose -f docker-compose.free.yml up -d --force-recreate`, { timeout: 120000 });
   if (r.ok) {
     log("容器已重建", true);
     await sleep(3000);
@@ -155,8 +160,13 @@ async function step4_testModels() {
     const model = MODEL_IDS[p.id];
     if (!port) { fail++; continue; }
 
+    // 用临时文件传递请求体，避免 shell 引号问题
+    const body = JSON.stringify({ model, messages: [{ role: "user", content: "1" }], max_tokens: 5 });
+    const tmpBody = join(CACHE, `req-${p.id}.json`);
+    writeFileSync(tmpBody, body, "utf8");
+
     const r = run(
-      `curl -s --max-time 15 http://localhost:${port}/v1/chat/completions -H "Content-Type: application/json" -H "Authorization: Bearer test" -d '${JSON.stringify({ model, messages: [{ role: "user", content: "1" }], max_tokens: 5 })}'`,
+      `curl -s --max-time 15 http://localhost:${port}/v1/chat/completions -H "Content-Type: application/json" -H "Authorization: Bearer test" -d @"${tmpBody}"`,
       { timeout: 20000 }
     );
 

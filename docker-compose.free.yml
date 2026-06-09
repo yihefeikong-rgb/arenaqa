@@ -7,8 +7,6 @@
 # 2. 填入各平台的 Cookie Token
 # 3. docker compose -f docker-compose.free.yml up -d
 
-version: "3.9"
-
 services:
   # ====== Kimi (月之暗面) ======
   kimi-free-api:
