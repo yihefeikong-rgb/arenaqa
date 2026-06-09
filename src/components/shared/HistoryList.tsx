@@ -36,6 +36,8 @@ export function HistoryList() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameText, setRenameText] = useState("");
 
   const fetchList = useCallback(async (q = "") => {
     setLoading(true);
@@ -99,6 +101,23 @@ export function HistoryList() {
     []
   );
 
+  const renameItem = useCallback(async (id: string, newPrompt: string) => {
+    if (!newPrompt.trim()) return;
+    try {
+      await fetch(`/api/history/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: newPrompt.trim() }),
+      });
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, prompt: newPrompt.trim() } : i))
+      );
+    } catch {
+      // ignore
+    }
+    setRenamingId(null);
+  }, []);
+
   const clearAll = useCallback(async () => {
     if (!confirm("确认清空所有历史记录？")) return;
     try {
@@ -143,27 +162,62 @@ export function HistoryList() {
               {dateItems.map((item) => (
                 <div
                   key={item.id}
-                  className="group flex items-start gap-1.5 px-1.5 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => loadDetail(item.id)}
+                  className="group flex items-start gap-1.5 px-1.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-800 truncate">{item.prompt.slice(0, 40)}</div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">
-                      {item.modelCount} 模型 · {new Date(item.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+                  {renamingId === item.id ? (
+                    <input
+                      className="flex-1 px-1.5 py-0.5 text-xs border border-indigo-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      value={renameText}
+                      onChange={(e) => setRenameText(e.target.value)}
+                      onBlur={() => renameItem(item.id, renameText)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") renameItem(item.id, renameText);
+                        if (e.key === "Escape") setRenamingId(null);
+                      }}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <div
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => loadDetail(item.id)}
+                    >
+                      <div className="text-xs text-gray-800 truncate">{item.prompt.slice(0, 40)}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">
+                        {item.modelCount} 模型 · {new Date(item.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded hover:bg-red-50 flex items-center justify-center text-red-400 shrink-0 transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteItem(item.id);
-                    }}
-                    title="删除"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+                  )}
+                  {renamingId !== item.id && (
+                    <>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded hover:bg-gray-100 flex items-center justify-center text-gray-400 shrink-0 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenamingId(item.id);
+                          setRenameText(item.prompt);
+                        }}
+                        title="重命名"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded hover:bg-red-50 flex items-center justify-center text-red-400 shrink-0 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteItem(item.id);
+                        }}
+                        title="删除"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
