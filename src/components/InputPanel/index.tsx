@@ -23,6 +23,7 @@ interface ModelInfo {
 export function InputPanel() {
   const [prompt, setPrompt] = useState("");
   const [modelDefs, setModelDefs] = useState<ModelInfo[]>([]);
+  const [freeHealth, setFreeHealth] = useState<Record<string, string>>({});
   const [showFree, setShowFree] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [slashIndex, setSlashIndex] = useState(0);
@@ -49,6 +50,7 @@ export function InputPanel() {
       fetch("/api/models")
         .then((r) => r.json())
         .then((data) => {
+          setFreeHealth(data.freeHealth || {});
           const models: ModelInfo[] = (data.models || []).map((m: { name: string; display_name: string; enabled: boolean; description: string; provider_type: string }) => {
             const lsKey = LS_KEY_MAP[m.name];
             const hasLocalKey = lsKey ? !!localStorage.getItem(`arenaqa-${lsKey}`) : false;
@@ -288,6 +290,7 @@ export function InputPanel() {
               key={m.id}
               model={m.id}
               enabled={m.configured}
+              health={freeHealth[m.id]}
             />
           ))}
         </div>

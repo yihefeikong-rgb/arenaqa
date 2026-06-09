@@ -17,3 +17,16 @@ cookies.json
 *.jpeg
 *.gif
 tsconfig.tsbuildinfo
+
+# 测试覆盖率报告
+coverage/
+
+# IDE 元数据
+.codegraph/
+.reasonix/
+
+# Cookie 刷新脚本缓存
+.cookie-cache/
+
+# 交接文档（内部参考，不提交）
+HANDOFF-NEXT.md

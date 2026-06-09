@@ -26,6 +26,7 @@ const MODEL_GRADIENT: Record<string, string> = {
 interface Props {
   model: string;
   enabled?: boolean;
+  health?: string; // 'healthy' | 'unhealthy' | 'dead' | undefined
 }
 
 function getMeta(model: string): { name: string; icon: string; desc: string } {
@@ -36,7 +37,7 @@ function getMeta(model: string): { name: string; icon: string; desc: string } {
   };
 }
 
-export function ModelCard({ model, enabled = true }: Props) {
+export function ModelCard({ model, enabled = true, health }: Props) {
   const selectedModels = useChatStore((s) => s.selectedModels);
   const selectModel = useChatStore((s) => s.selectModel);
   const deselectModel = useChatStore((s) => s.deselectModel);
@@ -85,9 +86,16 @@ export function ModelCard({ model, enabled = true }: Props) {
         <span className="font-semibold text-[13px] text-gray-900">{meta.name}</span>
       </div>
 
-      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-semibold mb-1 ${enabled ? (isFree ? "bg-green-100 text-green-700" : "bg-emerald-100 text-emerald-700") : "bg-gray-100 text-gray-500"}`}>
-        {enabled ? (isFree ? "已配置 · FREE" : "已配置") : "未配置"}
-      </span>
+      <div className="flex items-center gap-1 mb-1 flex-wrap">
+        <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${enabled ? (isFree ? "bg-green-100 text-green-700" : "bg-emerald-100 text-emerald-700") : "bg-gray-100 text-gray-500"}`}>
+          {enabled ? (isFree ? "已配置 · FREE" : "已配置") : "未配置"}
+        </span>
+        {health && (
+          <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium ${health === "healthy" ? "bg-green-100 text-green-600" : health === "unhealthy" ? "bg-yellow-100 text-yellow-600" : "bg-red-100 text-red-500"}`}>
+            {health === "healthy" ? "🟢" : health === "unhealthy" ? "🟡" : "🔴"}
+          </span>
+        )}
+      </div>
 
       {meta.desc && (
         <div className="text-[11px] text-gray-500 leading-tight">{meta.desc}</div>
