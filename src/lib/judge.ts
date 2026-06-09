@@ -100,7 +100,7 @@ ${answers.map((a) => `### ${a.model}\n${a.content}`).join('\n\n')}
 /**
  * 解析裁判模型的 JSON 响应
  */
-function parseJudgeResponse(
+export function parseJudgeResponse(
   text: string,
   answers: Array<{ model: string; content: string }>
 ): JudgeEvent {

@@ -105,7 +105,7 @@ ${answers.map((a) => `### ${a.model}\n${a.content}`).join('\n\n')}
 /**
  * 解析融合 JSON 响应
  */
-function parseFusionResponse(
+export function parseFusionResponse(
   text: string,
   answers: Array<{ model: string; content: string }>
 ): FusionEvent {
