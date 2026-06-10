@@ -21,13 +21,26 @@ export async function POST(req: NextRequest) {
     const judgeConfig = apiKey ? { apiKey, baseUrl: baseUrl || '', modelId: modelId || '' } : undefined;
 
     const judgeResult = await runJudge('history', prompt, answers, judgeConfig);
-    const fusionResult = await runFusion('history', prompt, answers);
+
+    // 融合单独 try-catch，失败也不影响评分结果
+    let fusionResult = null;
+    try {
+      // 让 fusion 也使用 DeepSeek（如果传了 Key），避免走慢的 NIM
+      if (judgeConfig) {
+        fusionResult = await runFusion('history', prompt, answers, judgeConfig.apiKey, judgeConfig.baseUrl);
+      } else {
+        fusionResult = await runFusion('history', prompt, answers);
+      }
+    } catch (e) {
+      console.error('[judge] fusion failed:', e);
+    }
 
     return NextResponse.json({
       scores: judgeResult.scores,
       fusion: fusionResult,
     });
-  } catch {
+  } catch (e) {
+    console.error('[judge] error:', e);
     return NextResponse.json({ error: '评分失败' }, { status: 500 });
   }
 }

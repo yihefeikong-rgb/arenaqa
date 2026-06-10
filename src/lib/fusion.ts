@@ -15,15 +15,19 @@ import type { FusionEvent, Divergence } from '@/types';
 export async function runFusion(
   _taskId: string,
   prompt: string,
-  answers: Array<{ model: string; content: string }>
+  answers: Array<{ model: string; content: string }>,
+  apiKeyOverride?: string,
+  baseUrlOverride?: string,
 ): Promise<FusionEvent> {
-  // API Key 优先级：DEEPSEEK_API_KEY（官方快） > OPENAI_API_KEY > NIM_API_KEY（慢）
-  let apiKey = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
-  let baseUrl = process.env.DEEPSEEK_API_KEY
-    ? (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1')
-    : process.env.OPENAI_BASE_URL;
-  let fusionModel = process.env.DEEPSEEK_API_KEY
-    ? 'deepseek-chat'
+  // API Key 优先级：参数传入 > DEEPSEEK_API_KEY > OPENAI_API_KEY > NIM_API_KEY
+  let apiKey = apiKeyOverride || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
+  let baseUrl = apiKeyOverride
+    ? (baseUrlOverride || 'https://api.deepseek.com/v1')
+    : (process.env.DEEPSEEK_API_KEY
+      ? (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1')
+      : process.env.OPENAI_BASE_URL);
+  let fusionModel = apiKeyOverride ? 'deepseek-chat'
+    : process.env.DEEPSEEK_API_KEY ? 'deepseek-chat'
     : (process.env.JUDGE_MODEL ?? 'gpt-4o');
 
   if (!apiKey && process.env.NIM_API_KEY) {
