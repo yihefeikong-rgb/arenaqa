@@ -82,9 +82,9 @@ export function FusionBox({ fusion }: Props) {
         </div>
       </div>
 
-      {/* Body — 固定高度，每个 tab 内容独立滚动 */}
-      <div className="p-3">
-        <div className="h-[420px] overflow-y-auto">
+      {/* Body — flex 填充剩余空间，每个 tab 内容独立滚动 */}
+      <div className="p-3 flex-1 min-h-0">
+        <div className="h-full overflow-y-auto">
           {tab === "consensus" && (
             <div className="space-y-1.5">
               {fusion.consensus.length > 0 ? (
