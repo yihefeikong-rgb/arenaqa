@@ -148,6 +148,7 @@ export interface ChatState {
   setTaskId: (taskId: string) => void;
   stopModel: (model: string) => void;
   reset: () => void;
+  newChat: () => void;
 }
 
 // --- 运行时配置 ---

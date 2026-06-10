@@ -3,29 +3,7 @@
 import { useState, useEffect } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { ModelCard } from "./ModelCard";
-
-// NVIDIA NIM 模型定义
-const NIM_SMALL_MODELS = [
-  { id: "nim-deepseek-v4-flash", name: "DeepSeek V4 Flash", desc: "快速推理" },
-  { id: "nim-qwen3-next", name: "Qwen3 Next 80B", desc: "轻量千问" },
-  { id: "nim-step-3.5-flash", name: "Step 3.5 Flash", desc: "阶跃星辰" },
-  { id: "nim-gemma-4", name: "Gemma 4 31B", desc: "Google" },
-  { id: "nim-llama-3.1-8b", name: "Llama 3.1 8B", desc: "轻量 Meta" },
-  { id: "nim-nemotron-mini", name: "Nemotron Mini 4B", desc: "NVIDIA 微模型" },
-  { id: "nim-mistral-nemotron", name: "Mistral Nemotron", desc: "Mistral 轻量" },
-];
-
-const NIM_LARGE_MODELS = [
-  { id: "nim-deepseek-v4-pro", name: "DeepSeek V4 Pro", desc: "DeepSeek 旗舰" },
-  { id: "nim-qwen3.5-122b", name: "Qwen3.5 122B", desc: "阿里千问" },
-  { id: "nim-kimi-k2.6", name: "Kimi K2.6", desc: "月之暗面" },
-  { id: "nim-glm-5.1", name: "GLM 5.1", desc: "智谱" },
-  { id: "nim-minimax-m2.7", name: "MiniMax M2.7", desc: "MiniMax" },
-  { id: "nim-yi-large", name: "Yi Large", desc: "零一万物" },
-  { id: "nim-llama-4", name: "Llama 4 Maverick", desc: "Meta 旗舰" },
-  { id: "nim-llama-3.3-70b", name: "Llama 3.3 70B", desc: "Meta" },
-  { id: "nim-mistral-large3", name: "Mistral Large 3", desc: "Mistral" },
-];
+import { NIM_SMALL_MODELS, NIM_LARGE_MODELS, getEnabledNimModels } from "@/lib/nim-models";
 
 const MODEL_GRADIENT: Record<string, string> = {
   deepseek: "from-blue-500 to-cyan-500",
@@ -212,53 +190,63 @@ export function InputPanel() {
                 ))}
               </div>
 
-              {nimKey && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600"><rect x="4" y="4" width="16" height="16" rx="2" /><polyline points="9 12 11 14 15 10" /></svg>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">NVIDIA NIM</span>
-                    <span className="text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded-full">免费</span>
-                  </div>
-
-                  <div className="mb-2">
-                    <div className="text-xs font-medium text-amber-600 mb-1.5">⚡ 快速小模型</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {NIM_SMALL_MODELS.map((m) => {
-                        const isSelected = selectedModels.includes(m.id);
-                        return (
-                          <button key={m.id}
-                            onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                              isSelected ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 text-indigo-700" : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-200 hover:text-indigo-500"
-                            }`}
-                          >
-                            {m.name}
-                          </button>
-                        );
-                      })}
+              {nimKey && (() => {
+                const enabledIds = getEnabledNimModels();
+                const smallModels = NIM_SMALL_MODELS.filter((m) => enabledIds.includes(m.id));
+                const largeModels = NIM_LARGE_MODELS.filter((m) => enabledIds.includes(m.id));
+                if (smallModels.length === 0 && largeModels.length === 0) return null;
+                return (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600"><rect x="4" y="4" width="16" height="16" rx="2" /><polyline points="9 12 11 14 15 10" /></svg>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">NVIDIA NIM</span>
+                      <span className="text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded-full">免费</span>
                     </div>
-                  </div>
 
-                  <div>
-                    <div className="text-xs font-medium text-purple-600 mb-1.5">🦾 大参数模型</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {NIM_LARGE_MODELS.map((m) => {
-                        const isSelected = selectedModels.includes(m.id);
-                        return (
-                          <button key={m.id}
-                            onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
-                              isSelected ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 text-indigo-700" : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-200 hover:text-indigo-500"
-                            }`}
-                          >
-                            {m.name}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {smallModels.length > 0 && (
+                      <div className="mb-2">
+                        <div className="text-xs font-medium text-amber-600 mb-1.5">⚡ 快速小模型</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {smallModels.map((m) => {
+                            const isSelected = selectedModels.includes(m.id);
+                            return (
+                              <button key={m.id}
+                                onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                                  isSelected ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 text-indigo-700" : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-200 hover:text-indigo-500"
+                                }`}
+                              >
+                                {m.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {largeModels.length > 0 && (
+                      <div>
+                        <div className="text-xs font-medium text-purple-600 mb-1.5">🦾 大参数模型</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {largeModels.map((m) => {
+                            const isSelected = selectedModels.includes(m.id);
+                            return (
+                              <button key={m.id}
+                                onClick={() => isSelected ? deselectModel(m.id) : selectModel(m.id)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                                  isSelected ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-300 text-indigo-700" : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-200 hover:text-indigo-500"
+                                }`}
+                              >
+                                {m.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 shrink-0">

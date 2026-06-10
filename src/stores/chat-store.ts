@@ -13,6 +13,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   selectModel: (model) => {
     set((state) => {
+      // 如果在查看历史（有 answers 且是加载来的），选模型=开始新对话
+      if (state.currentHistoryId && Object.keys(state.answers).length > 0) {
+        return {
+          status: "idle" as const,
+          selectedModels: [model],
+          answers: {},
+          scores: [],
+          fusion: null,
+          taskId: null,
+          lastPrompt: "",
+          currentHistoryId: null,
+        };
+      }
       if (state.selectedModels.length >= 6) return state;
       if (state.selectedModels.includes(model)) return state;
       return { selectedModels: [...state.selectedModels, model] };
@@ -86,6 +99,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
       scores: [],
       fusion: null,
       taskId: null,
+      currentHistoryId: null,
+    }),
+
+  newChat: () =>
+    set({
+      status: "idle",
+      selectedModels: [],
+      answers: {},
+      scores: [],
+      fusion: null,
+      taskId: null,
+      lastPrompt: "",
       currentHistoryId: null,
     }),
 }));

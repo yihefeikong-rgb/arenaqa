@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { NIM_SMALL_MODELS, NIM_LARGE_MODELS, getEnabledNimModels, saveEnabledNimModels } from "@/lib/nim-models";
 
 interface CustomModel {
   id: string;
@@ -60,6 +61,7 @@ export function SettingsModal({ open, onClose }: Props) {
 
   // NVIDIA NIM
   const [nimApiKey, setNimApiKey] = useState("");
+  const [nimEnabled, setNimEnabled] = useState<string[]>([]);
 
   // 密码可见性切换
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
@@ -89,6 +91,7 @@ export function SettingsModal({ open, onClose }: Props) {
     setJudgeBaseUrl(localStorage.getItem("arenaqa-JUDGE_BASE_URL") || "");
     setJudgeModelId(localStorage.getItem("arenaqa-JUDGE_MODEL") || "gpt-4o");
     setNimApiKey(localStorage.getItem("arenaqa-NIM_API_KEY") || "");
+    setNimEnabled(getEnabledNimModels());
     setSaved(false);
   }, [open]);
 
@@ -121,9 +124,24 @@ export function SettingsModal({ open, onClose }: Props) {
   const handleSaveNim = () => {
     if (nimApiKey) localStorage.setItem("arenaqa-NIM_API_KEY", nimApiKey);
     else localStorage.removeItem("arenaqa-NIM_API_KEY");
+    saveEnabledNimModels(nimEnabled);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     window.dispatchEvent(new Event("arenaqa-keys-updated"));
+  };
+
+  const toggleNimModel = (id: string) => {
+    setNimEnabled((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllNim = () => {
+    setNimEnabled([...NIM_SMALL_MODELS, ...NIM_LARGE_MODELS].map((m) => m.id));
+  };
+
+  const deselectAllNim = () => {
+    setNimEnabled([]);
   };
 
   const addCustomModel = () => {
@@ -301,8 +319,7 @@ export function SettingsModal({ open, onClose }: Props) {
           {tab === "nvidia" && (
             <div className="space-y-4">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                NVIDIA NIM 提供免费 API（40 次/分钟），支持 DeepSeek、千问、Kimi、智谱、Llama 等模型。
-                填写 API Key 后，在左侧面板会出现「NVIDIA NIM」区域，可多选模型参赛。
+                NVIDIA NIM 提供免费 API（40 次/分钟）。配置 API Key 后，只有下方勾选的模型会出现在左侧面板。
               </p>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">NVIDIA NIM API Key</label>
@@ -328,6 +345,68 @@ export function SettingsModal({ open, onClose }: Props) {
                   </button>
                 </div>
               </div>
+
+              {/* 全选/取消 */}
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700 pt-3">
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  可用模型 ({nimEnabled.length}/{NIM_SMALL_MODELS.length + NIM_LARGE_MODELS.length})
+                </span>
+                <div className="flex gap-2">
+                  <button onClick={selectAllNim} className="text-[10px] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">全选</button>
+                  <button onClick={deselectAllNim} className="text-[10px] px-2 py-0.5 rounded border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">取消</button>
+                </div>
+              </div>
+
+              {/* 快速小模型 */}
+              <div>
+                <div className="text-xs font-medium text-amber-600 mb-2">⚡ 快速小模型</div>
+                <div className="space-y-1">
+                  {NIM_SMALL_MODELS.map((m) => {
+                    const enabled = nimEnabled.includes(m.id);
+                    return (
+                      <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          onChange={() => toggleNimModel(m.id)}
+                          className="accent-indigo-500 w-3.5 h-3.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{m.name}</span>
+                          <span className="text-[10px] text-gray-400 ml-1.5">{m.desc}</span>
+                        </div>
+                        <span className="text-gray-300 dark:text-gray-600 text-[9px]">{m.id.replace("nim-", "")}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 大参数模型 */}
+              <div>
+                <div className="text-xs font-medium text-purple-600 mb-2">🦾 大参数模型</div>
+                <div className="space-y-1">
+                  {NIM_LARGE_MODELS.map((m) => {
+                    const enabled = nimEnabled.includes(m.id);
+                    return (
+                      <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          onChange={() => toggleNimModel(m.id)}
+                          className="accent-indigo-500 w-3.5 h-3.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{m.name}</span>
+                          <span className="text-[10px] text-gray-400 ml-1.5">{m.desc}</span>
+                        </div>
+                        <span className="text-gray-300 dark:text-gray-600 text-[9px]">{m.id.replace("nim-", "")}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <button onClick={handleSaveNim} className={`w-full py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
                 {saved ? "已保存" : "保存 NVIDIA NIM"}
               </button>

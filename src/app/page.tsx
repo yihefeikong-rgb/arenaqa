@@ -95,6 +95,12 @@ export default function Home() {
             </button>
           )}
 
+          <button type="button" onClick={() => useChatStore.getState().newChat()} title="新对话"
+            className="hidden md:flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            新对话
+          </button>
+
           <button type="button" onClick={() => setSettingsOpen(true)} title="设置"
             className="w-8 h-8 max-md:w-10 max-md:h-10 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center transition-colors">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -114,7 +120,7 @@ export default function Home() {
       </header>
 
       {/* Main */}
-      <main className="flex flex-1 pb-14 md:pb-0" style={{ maxWidth: 2200, margin: "0 auto" }}>
+      <main className="flex flex-1 pb-14 md:pb-0 overflow-hidden" style={{ maxWidth: 2200, margin: "0 auto" }}>
         <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr_320px] grid-rows-1 gap-3 lg:gap-4 min-w-0 min-h-0">
         {/* Left: Models / History tabs */}
         <section className={`min-h-0 flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in ${mobileTab === "models" ? "flex" : "hidden"} md:flex`}>
@@ -158,8 +164,8 @@ export default function Home() {
         </section>
 
         {/* Right: Results */}
-        <section className={`min-h-0 animate-fade-in self-start ${mobileTab === "results" ? "block" : "hidden"} lg:block`}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-none">
+        <section className={`min-h-0 animate-fade-in ${mobileTab === "results" ? "block" : "hidden"} lg:block`}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
             <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">评分与融合</h3>
               {hasAnswers && (
