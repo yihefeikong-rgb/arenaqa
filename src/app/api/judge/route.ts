@@ -22,18 +22,21 @@ export async function POST(req: NextRequest) {
 
     const judgeResult = await runJudge('history', prompt, answers, judgeConfig);
 
-    // 融合单独 try-catch，失败也不影响评分结果
-    let fusionResult = null;
-    try {
-      // 让 fusion 也使用 DeepSeek（如果传了 Key），避免走慢的 NIM
-      if (judgeConfig) {
-        fusionResult = await runFusion('history', prompt, answers, judgeConfig.apiKey, judgeConfig.baseUrl);
-      } else {
-        fusionResult = await runFusion('history', prompt, answers);
+    // 融合异步跑，30s 超时，不阻塞评分返回
+    const fusionPromise = (async () => {
+      try {
+        const key = judgeConfig?.apiKey;
+        const url = judgeConfig?.baseUrl;
+        return await runFusion('history', prompt, answers, key, url);
+      } catch {
+        return null;
       }
-    } catch (e) {
-      console.error('[judge] fusion failed:', e);
-    }
+    })();
+
+    const fusionResult = await Promise.race([
+      fusionPromise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 30_000)),
+    ]);
 
     return NextResponse.json({
       scores: judgeResult.scores,

@@ -228,6 +228,8 @@ export default function Home() {
                       });
                       if (res.ok) {
                         const data = await res.json();
+                        console.log('[reJudge] got', data.scores?.length, 'scores, fusion:', !!data.fusion);
+                        console.log('[reJudge] first score:', JSON.stringify(data.scores?.[0]));
                         useChatStore.setState({ scores: data.scores, fusion: data.fusion });
 
                         // 保存评分结果到历史记录
