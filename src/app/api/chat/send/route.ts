@@ -28,6 +28,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 从 .env 注入 NVIDIA NIM API Key，避免前端必须手动配置
+    if (process.env.NIM_API_KEY) {
+      const nimModels = body.models.filter((m) => m.startsWith("nim-"));
+      if (nimModels.length > 0) {
+        body.apiKeys = body.apiKeys || {};
+        nimModels.forEach((m) => {
+          if (!body.apiKeys![m]) {
+            body.apiKeys![m] = process.env.NIM_API_KEY!;
+          }
+        });
+      }
+    }
+
     const taskId = await taskManager.startTask(body);
 
     return NextResponse.json(

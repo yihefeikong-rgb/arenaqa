@@ -17,19 +17,29 @@ export async function POST(req: NextRequest) {
       fusion: FusionResult | null;
     };
 
+    // 全部模型均失败时，answers 为空内容，仍然保存历史
     const conversation = await prisma.conversation.create({
       data: {
         prompt,
         answers: {
-          create: answers.map((a) => ({
-            model: a.model,
-            content: a.content,
-            status: a.error ? "error" : "done",
-            latencyMs: a.latencyMs,
-            error: a.error,
-          })),
+          create: (() => {
+            if (answers.length === 0) {
+              return [{ model: "unknown", content: "", status: "error", error: "No answers recorded" }];
+            }
+            const valid = answers.filter((a) => a.model);
+            if (valid.length === 0) {
+              return [{ model: "unknown", content: "", status: "error", error: "All answers missing model field" }];
+            }
+            return valid.map((a) => ({
+              model: a.model!,
+              content: a.content || "",
+              status: a.error ? "error" : "done",
+              latencyMs: a.latencyMs ?? null,
+              error: a.error ?? null,
+            }));
+          })(),
         },
-        judge: scores.length > 0
+        judge: scores && scores.length > 0
           ? { create: { scores: JSON.stringify(scores), raw: "" } }
           : undefined,
         fusion: fusion
@@ -40,7 +50,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, id: conversation.id });
-  } catch {
+  } catch (err) {
+    console.error("[history] POST error:", err instanceof Error ? err.message : err);
     return NextResponse.json({ success: false, error: "保存失败" }, { status: 500 });
   }
 }

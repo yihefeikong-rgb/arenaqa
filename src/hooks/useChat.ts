@@ -70,7 +70,7 @@ export function useChat() {
         };
         models.forEach((m) => {
           const realModelId = NIM_MODEL_MAP[m];
-          if (realModelId && nimKey) {
+          if (realModelId) {
             customModels.push({
               id: m,
               name: "NVIDIA NIM",
@@ -187,12 +187,18 @@ export function useChat() {
 
           // 自动保存历史记录
           const state = useChatStore.getState();
+          const answers = Object.entries(state.answers).map(([model, a]) => ({
+            model,
+            content: a.content,
+            latencyMs: a.latencyMs,
+            error: a.error,
+          }));
           fetch("/api/history", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               prompt: state.lastPrompt,
-              answers: Object.values(state.answers),
+              answers,
               scores: state.scores,
               fusion: state.fusion,
             }),
