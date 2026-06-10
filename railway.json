@@ -1,6 +1,9 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
-  "build": {},
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm rebuild @tailwindcss/oxide && npx prisma generate && next build"
+  },
   "deploy": {
     "startCommand": "npx next start",
     "healthcheckPath": "/",
