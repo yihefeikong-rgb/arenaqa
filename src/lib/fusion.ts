@@ -17,10 +17,24 @@ export async function runFusion(
   prompt: string,
   answers: Array<{ model: string; content: string }>
 ): Promise<FusionEvent> {
-  // 如果没有 API Key 或只有一个模型，跳过融合
-  if (!process.env.OPENAI_API_KEY) {
+  // API Key 优先级：DEEPSEEK_API_KEY（官方快） > OPENAI_API_KEY > NIM_API_KEY（慢）
+  let apiKey = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
+  let baseUrl = process.env.DEEPSEEK_API_KEY
+    ? (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1')
+    : process.env.OPENAI_BASE_URL;
+  let fusionModel = process.env.DEEPSEEK_API_KEY
+    ? 'deepseek-chat'
+    : (process.env.JUDGE_MODEL ?? 'gpt-4o');
+
+  if (!apiKey && process.env.NIM_API_KEY) {
+    apiKey = process.env.NIM_API_KEY;
+    baseUrl = 'https://integrate.api.nvidia.com/v1';
+    fusionModel = 'deepseek-ai/deepseek-v4-flash';
+  }
+
+  if (!apiKey) {
     return {
-      consensus: ['融合引擎需要配置 OPENAI_API_KEY'],
+      consensus: ['融合引擎需要配置 API Key（OPENAI_API_KEY 或 NIM_API_KEY）'],
       divergences: [],
       synthesized: answers.map((a) => `## ${a.model}\n${a.content}`).join('\n\n---\n\n'),
     };
@@ -35,16 +49,12 @@ export async function runFusion(
   }
 
   try {
-    const judgeModel = process.env.JUDGE_MODEL ?? 'gpt-4o';
-    const client = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_BASE_URL,
-    });
+    const client = createOpenAI({ apiKey, baseURL: baseUrl || undefined });
 
     const fusionPrompt = buildFusionPrompt(prompt, answers);
 
     const result = await generateText({
-      model: client.chat(judgeModel) as unknown as LanguageModel,
+      model: client.chat(fusionModel) as unknown as LanguageModel,
       prompt: fusionPrompt,
       temperature: 0.2,
       maxOutputTokens: 4096,

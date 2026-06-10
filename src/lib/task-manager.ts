@@ -163,21 +163,51 @@ class TaskManager {
           .filter((m) => task.completedModels.has(m))
           .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
 
+        console.log(`[task] running judge with ${answersArr.length} completed models`);
         const judgeResult = await runJudge(taskId, req.prompt, answersArr, this._judgeConfig);
+        console.log(`[task] judge done, scores=${judgeResult.scores.length}`);
         sseManager.publish(taskId, "judge", judgeResult);
 
         try {
+          console.log('[task] running fusion...');
           const fusionResult = await runFusion(taskId, req.prompt, answersArr);
+          console.log('[task] fusion done');
           sseManager.publish(taskId, "fusion", fusionResult);
         } catch (fusionErr) {
+          console.error(`[task] fusion error: ${fusionErr instanceof Error ? fusionErr.message : fusionErr}`);
           sseManager.publish(taskId, "judge_error", {
             error: fusionErr instanceof Error ? fusionErr.message : "Fusion failed",
           });
         }
       } catch (judgeErr) {
-        sseManager.publish(taskId, "judge_error", {
-          error: judgeErr instanceof Error ? judgeErr.message : "Judge failed",
-        });
+        console.error(`[task] judge error: ${judgeErr instanceof Error ? judgeErr.message : judgeErr}`);
+
+        // 如果用了自定义裁判配置失败了，用 NIM_API_KEY fallback 重试一次
+        if (this._judgeConfig) {
+          console.log('[task] retrying judge without custom config (NIM fallback)...');
+          try {
+            const answersArr = req.models
+              .filter((m) => task.completedModels.has(m))
+              .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
+            const judgeResult = await runJudge(taskId, req.prompt, answersArr, null); // null → NIM fallback
+            console.log(`[task] judge retry done, scores=${judgeResult.scores.length}`);
+            sseManager.publish(taskId, "judge", judgeResult);
+
+            try {
+              const fusionResult = await runFusion(taskId, req.prompt, answersArr);
+              sseManager.publish(taskId, "fusion", fusionResult);
+            } catch { /* ignore */ }
+          } catch (retryErr) {
+            console.error(`[task] judge retry also failed: ${retryErr}`);
+            sseManager.publish(taskId, "judge_error", {
+              error: retryErr instanceof Error ? retryErr.message : "Judge retry failed",
+            });
+          }
+        } else {
+          sseManager.publish(taskId, "judge_error", {
+            error: judgeErr instanceof Error ? judgeErr.message : "Judge failed",
+          });
+        }
       }
 
       sseManager.publish(taskId, "complete", { taskId, totalLatencyMs: Date.now() - startTime });
@@ -207,15 +237,6 @@ class TaskManager {
     const controller = new AbortController();
     task.controllers.set(modelName, controller);
 
-    const timeout = setTimeout(() => {
-      controller.abort();
-      sseManager.publish(task.taskId, "error", {
-        model: modelName,
-        error: "Response timeout",
-        code: "TIMEOUT",
-      });
-    }, 45_000);
-
     let index = 0;
     let totalChars = 0;
     let accumulated = "";
@@ -232,7 +253,6 @@ class TaskManager {
         totalChars += chunk.length;
       }
 
-      clearTimeout(timeout);
       task.answers.set(modelName, accumulated);
       task.completedModels.add(modelName);
 
@@ -242,10 +262,27 @@ class TaskManager {
         totalChars,
       });
     } catch (err: unknown) {
-      clearTimeout(timeout);
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (err instanceof Error && err.name === "AbortError") {
+        task.failedModels.add(modelName);
+        sseManager.publish(task.taskId, "error", {
+          model: modelName,
+          error: "已停止",
+          code: "TIMEOUT",
+        });
+        return;
+      }
       throw err;
     }
+  }
+
+  /** 停止单个模型 */
+  stopModel(taskId: string, modelName: string): boolean {
+    const task = this.tasks.get(taskId);
+    if (!task || task.completed) return false;
+    const controller = task.controllers.get(modelName);
+    if (!controller) return false;
+    controller.abort();
+    return true;
   }
 
   abortTask(taskId: string): boolean {
@@ -257,10 +294,35 @@ class TaskManager {
     }
     task.completed = true;
 
-    sseManager.publish(taskId, "complete", { taskId, totalLatencyMs: Date.now() - task.startTime });
-    sseManager.complete(taskId);
+    // 用已完成的模型跑评分和融合
+    this.finalizeWithCompleted(taskId).catch(() => {});
 
     return true;
+  }
+
+  /** 用已完成的模型跑评分+融合，发布 complete */
+  private async finalizeWithCompleted(taskId: string): Promise<void> {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+
+    const completedArr = task.models
+      .filter((m) => task.completedModels.has(m))
+      .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
+
+    if (completedArr.length > 0) {
+      try {
+        const judgeResult = await runJudge(taskId, task.prompt, completedArr, this._judgeConfig);
+        sseManager.publish(taskId, "judge", judgeResult);
+      } catch { /* ignore */ }
+
+      try {
+        const fusionResult = await runFusion(taskId, task.prompt, completedArr);
+        sseManager.publish(taskId, "fusion", fusionResult);
+      } catch { /* ignore */ }
+    }
+
+    sseManager.publish(taskId, "complete", { taskId, totalLatencyMs: Date.now() - task.startTime });
+    sseManager.complete(taskId);
   }
 }
 

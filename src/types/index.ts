@@ -136,6 +136,7 @@ export interface ChatState {
   fusion: FusionResult | null;
   taskId: string | null;
   lastPrompt: string;
+  currentHistoryId: string | null;
   selectModel: (model: string) => void;
   deselectModel: (model: string) => void;
   setStatus: (status: ChatStatus) => void;

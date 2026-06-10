@@ -24,12 +24,46 @@ export async function runJudge(
   answers: Array<{ model: string; content: string }>,
   judgeConfig?: JudgeConfig | null
 ): Promise<JudgeEvent> {
-  const apiKey = judgeConfig?.apiKey || process.env.OPENAI_API_KEY;
-  const baseUrl = judgeConfig?.baseUrl || process.env.OPENAI_BASE_URL;
-  const modelId = judgeConfig?.modelId || process.env.JUDGE_MODEL || 'gpt-4o';
+  // 优先级：前端配置 > DEEPSEEK_API_KEY（官方快） > OPENAI_API_KEY > NIM_API_KEY（慢）
+  let apiKey = judgeConfig?.apiKey || '';
+  let baseUrl = judgeConfig?.baseUrl || '';
+  let modelId = judgeConfig?.modelId || '';
+
+  // DeepSeek 官方 Key 自动修正：如果 Key 以 sk- 开头且来自 DeepSeek，用官方 API
+  const isDsKey = apiKey.startsWith('sk-');
+
+  if (!apiKey) {
+    // .env 的 Key
+    if (process.env.DEEPSEEK_API_KEY) {
+      apiKey = process.env.DEEPSEEK_API_KEY;
+      baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1';
+      modelId = 'deepseek-chat';
+    } else if (process.env.OPENAI_API_KEY) {
+      apiKey = process.env.OPENAI_API_KEY;
+      baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+      modelId = modelId || process.env.JUDGE_MODEL || 'gpt-4o';
+    } else if (process.env.NIM_API_KEY) {
+      apiKey = process.env.NIM_API_KEY;
+      baseUrl = 'https://integrate.api.nvidia.com/v1';
+      modelId = 'deepseek-ai/deepseek-v4-flash';
+    }
+  } else {
+    // 从 localStorage 来的 Key
+    if (isDsKey) {
+      // DeepSeek 官方 Key — 修正 model 名（防止拼写错误）
+      baseUrl = baseUrl || 'https://api.deepseek.com/v1';
+      modelId = 'deepseek-chat';
+    } else {
+      // OpenAI 兼容 Key — 保持原样
+      modelId = modelId || 'gpt-4o';
+    }
+  }
+
+  console.log(`[judge] using key=${apiKey ? apiKey.slice(0, 8) + '...' : 'none'} base=${baseUrl} model=${modelId} answers=${answers.length}`);
 
   // 没有 API Key 时不评分
   if (!apiKey) {
+    console.log('[judge] no API key, returning mock scores');
     return {
       scores: answers.map((a) => ({
         model: a.model,
@@ -47,6 +81,8 @@ export async function runJudge(
 
   const judgePrompt = buildJudgePrompt(prompt, answers);
 
+  console.log(`[judge] calling AI for ${answers.length} answers...`);
+
   const result = await generateText({
     model: client.chat(modelId) as unknown as LanguageModel,
     prompt: judgePrompt,
@@ -55,7 +91,10 @@ export async function runJudge(
   });
 
   // 解析 JSON 响应
-  return parseJudgeResponse(result.text, answers);
+  console.log(`[judge] AI response ${result.text.length} chars, first 100: ${result.text.slice(0, 100)}`);
+  const parsed = parseJudgeResponse(result.text, answers);
+  console.log(`[judge] parsed ${parsed.scores.length} scores`);
+  return parsed;
 }
 
 /**

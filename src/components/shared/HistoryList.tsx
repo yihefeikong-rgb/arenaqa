@@ -83,6 +83,7 @@ export function HistoryList() {
         fusion: data.fusion || null,
         lastPrompt: data.prompt,
         status: "complete",
+        currentHistoryId: id,
       });
     } catch {
       // ignore

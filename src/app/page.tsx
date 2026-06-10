@@ -50,8 +50,9 @@ export default function Home() {
     });
   }, []);
 
-  // 设置面板 + 历史栏 + 左栏切换
+  // 设置面板 + 历史栏 + 左栏切换 + 评分状态
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reJudging, setReJudging] = useState(false);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [leftTab, setLeftTab] = useState<"models" | "history">("models");
   const [mobileTab, setMobileTab] = useState<"models" | "chat" | "results">("chat");
@@ -118,7 +119,7 @@ export default function Home() {
 
       {/* Main */}
       <main className="flex flex-1 pb-14 md:pb-0" style={{ maxWidth: 2200, margin: "0 auto" }}>
-        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr_320px] gap-3 lg:gap-4 min-w-0 min-h-0">
+        <div className="flex-1 px-3 lg:px-4 py-3 lg:py-4 grid grid-cols-1 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr_320px] grid-rows-1 gap-3 lg:gap-4 min-w-0 min-h-0">
         {/* Left: Models / History tabs */}
         <section className={`min-h-0 flex-col bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-fade-in ${mobileTab === "models" ? "flex" : "hidden"} md:flex`}>
           <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
@@ -178,7 +179,7 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-4 h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                   {answerModels.map((model) => (
                     <AnswerColumn key={model} model={model} />
                   ))}
@@ -199,8 +200,54 @@ export default function Home() {
         {/* Right: Results */}
         <section className={`min-h-0 animate-fade-in ${mobileTab === "results" ? "block" : "hidden"} lg:block`}>
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">评分与融合</h3>
+              {hasAnswers && (
+                <button
+                  disabled={reJudging}
+                  onClick={async () => {
+                    setReJudging(true);
+                    const state = useChatStore.getState();
+                    const answersArr = Object.entries(state.answers).map(([model, a]) => ({
+                      model,
+                      content: a.content,
+                    }));
+                    // 从 localStorage 读 DeepSeek Key 传给后端
+                    const dsKey = localStorage.getItem('arenaqa-DEEPSEEK_API_KEY');
+                    try {
+                      const res = await fetch('/api/judge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          prompt: state.lastPrompt,
+                          answers: answersArr,
+                          apiKey: dsKey || undefined,
+                          baseUrl: 'https://api.deepseek.com/v1',
+                          modelId: 'deepseek-chat',
+                        }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        useChatStore.setState({ scores: data.scores, fusion: data.fusion });
+
+                        // 保存评分结果到历史记录
+                        const historyId = useChatStore.getState().currentHistoryId;
+                        if (historyId) {
+                          fetch(`/api/history/${historyId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ scores: data.scores, fusion: data.fusion }),
+                          }).catch(() => {});
+                        }
+                      }
+                    } catch { /* ignore */ }
+                    setReJudging(false);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${reJudging ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-950/30'}`}
+                >
+                  {reJudging ? '评分中...' : '重新评分'}
+                </button>
+              )}
             </div>
             <div className="p-4 flex-1 overflow-y-auto">
               {!hasResults ? (

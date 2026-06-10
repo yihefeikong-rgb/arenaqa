@@ -116,8 +116,8 @@ export function AnswerColumn({ model }: Props) {
           )}
           {isStreaming && (
             <button onClick={() => stopModel(model)}
-              className="px-2 py-1 rounded-md text-[11px] font-medium border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors">
-              停止
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-300 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/60 transition-colors shadow-sm">
+              停止此模型
             </button>
           )}
           {(isStopped || isError) && (
@@ -130,7 +130,7 @@ export function AnswerColumn({ model }: Props) {
       </div>
 
       {/* 回答内容 */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 overflow-y-auto max-h-[400px]">
         {isStreaming && !hasContent ? (
           <div className="space-y-2">
             {[88, 72, 90, 60, 78].map((w, i) => (
@@ -147,6 +147,19 @@ export function AnswerColumn({ model }: Props) {
           <MarkdownRenderer content={answer.content} streaming={isStreaming} />
         )}
       </div>
+
+      {/* 流式生成中 — 底部悬浮停止按钮 */}
+      {isStreaming && hasContent && (
+        <div className="px-4 py-2 border-t border-indigo-100 dark:border-indigo-800 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/30">
+          <button
+            onClick={() => stopModel(model)}
+            className="w-full py-2.5 rounded-xl text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
+            停止生成
+          </button>
+        </div>
+      )}
 
       {/* 底部工具栏 */}
       {(answer.status === "done" || hasContent) && (

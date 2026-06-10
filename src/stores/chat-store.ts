@@ -9,6 +9,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   fusion: null,
   taskId: null,
   lastPrompt: "",
+  currentHistoryId: null,
 
   selectModel: (model) => {
     set((state) => {

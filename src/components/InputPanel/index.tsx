@@ -11,6 +11,8 @@ const NIM_SMALL_MODELS = [
   { id: "nim-step-3.5-flash", name: "Step 3.5 Flash", desc: "阶跃星辰" },
   { id: "nim-gemma-4", name: "Gemma 4 31B", desc: "Google" },
   { id: "nim-llama-3.1-8b", name: "Llama 3.1 8B", desc: "轻量 Meta" },
+  { id: "nim-nemotron-mini", name: "Nemotron Mini 4B", desc: "NVIDIA 微模型" },
+  { id: "nim-mistral-nemotron", name: "Mistral Nemotron", desc: "Mistral 轻量" },
 ];
 
 const NIM_LARGE_MODELS = [

@@ -67,6 +67,8 @@ export function useChat() {
           "nim-llama-4": "meta/llama-4-maverick-17b-128e-instruct",
           "nim-llama-3.3-70b": "meta/llama-3.3-70b-instruct",
           "nim-mistral-large3": "mistralai/mistral-large-3-675b-instruct-2512",
+          "nim-nemotron-mini": "nvidia/nemotron-mini-4b-instruct",
+          "nim-mistral-nemotron": "mistralai/mistral-nemotron-instruct",
         };
         models.forEach((m) => {
           const realModelId = NIM_MODEL_MAP[m];
@@ -251,8 +253,18 @@ export function useChat() {
   }, [store]);
 
   const stopModel = useCallback(
-    (model: string) => {
+    async (model: string) => {
       store.stopModel(model);
+      const { taskId } = useChatStore.getState();
+      if (taskId) {
+        try {
+          await fetch(`/api/chat/stop/${taskId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model }),
+          });
+        } catch { /* ignore */ }
+      }
     },
     [store]
   );

@@ -68,10 +68,38 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    await prisma.conversation.update({
-      where: { id },
-      data: { prompt: body.prompt },
-    });
+
+    const data: Record<string, unknown> = {};
+    if (body.prompt) data.prompt = body.prompt;
+
+    // 更新裁判评分
+    if (body.scores) {
+      data.judge = {
+        upsert: {
+          create: { scores: JSON.stringify(body.scores), raw: '' },
+          update: { scores: JSON.stringify(body.scores) },
+        },
+      };
+    }
+    // 更新融合结果
+    if (body.fusion) {
+      data.fusion = {
+        upsert: {
+          create: {
+            consensus: JSON.stringify(body.fusion.consensus),
+            divergences: JSON.stringify(body.fusion.divergences),
+            synthesized: body.fusion.synthesized || '',
+          },
+          update: {
+            consensus: JSON.stringify(body.fusion.consensus),
+            divergences: JSON.stringify(body.fusion.divergences),
+            synthesized: body.fusion.synthesized || '',
+          },
+        },
+      };
+    }
+
+    await prisma.conversation.update({ where: { id }, data });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
