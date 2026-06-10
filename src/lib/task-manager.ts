@@ -6,6 +6,7 @@
 import { randomUUID } from "crypto";
 import { BaseProvider } from "./providers/base";
 import { OpenAICompatProvider } from "./providers/openai-compat";
+import { NimProvider } from "./providers/nim";
 import { AnthropicProvider } from "./providers/anthropic";
 import { GoogleProvider } from "./providers/google";
 import { sseManager } from "./sse-manager";
@@ -24,7 +25,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 const JUDGE_TIMEOUT_MS = 30_000;
-const FUSION_TIMEOUT_MS = 30_000;
+const FUSION_TIMEOUT_MS = 60_000;
 
 interface RunningTask {
   taskId: string;
@@ -62,6 +63,8 @@ class TaskManager {
   private providers = new Map<string, BaseProvider>();
   private _customModels: Array<{ id: string; name: string; apiBase: string; modelId: string }> = [];
   private _judgeConfig: { apiKey: string; baseUrl: string; modelId: string } | null = null;
+  /** 从前端请求中提取的 NIM API Key（用于 judge/fusion fallback） */
+  private _requestNimKey: string | null = null;
 
   registerProvider(name: string, provider: BaseProvider): void {
     this.providers.set(name, provider);
@@ -92,9 +95,20 @@ class TaskManager {
       case "gemini":
         return new GoogleProvider({ apiKey, modelId: overrideModelId || process.env.GEMINI_MODEL_ID });
       default:
-        // 检查自定义模型（custom- 开头的 + nim- 开头的等）
+        // 检查自定义模型（custom- 开头等）
         const def = this._customModels.find((m) => m.id === modelName);
         if (def) {
+          // NIM 模型用专用 Provider（原生 fetch + 手动 SSE 解析，兼容性更好）
+          if (modelName.startsWith("nim-")) {
+            // 部分模型流式格式不标准，回退为非流式
+            const nonStreamingModels = ["nim-kimi-k2.6", "nim-step-3.7-flash", "nim-qwen3.5-122b", "nim-yi-large"];
+            return new NimProvider({
+              name: modelName,
+              apiKey,
+              modelId: def.modelId,
+              streaming: !nonStreamingModels.includes(modelName),
+            });
+          }
           return new OpenAICompatProvider({
             name: modelName,
             apiBase: def.apiBase,
@@ -114,6 +128,17 @@ class TaskManager {
     // 暂存本次请求的自定义模型和裁判配置
     this._customModels = req.customModels || [];
     this._judgeConfig = req.judgeConfig || null;
+
+    // 从请求中提取 NIM API Key（前端 localStorage → req.apiKeys），供 judge/fusion fallback
+    this._requestNimKey = null;
+    if (req.apiKeys) {
+      for (const [model, key] of Object.entries(req.apiKeys)) {
+        if (key && model.startsWith("nim-")) {
+          this._requestNimKey = key;
+          break;
+        }
+      }
+    }
 
     // 构建 model → config 映射
     const configMap = new Map<string, { apiBase?: string; modelId?: string }>();
@@ -190,8 +215,10 @@ class TaskManager {
 
         try {
           console.log('[task] running fusion...');
+          const fusionKey = this._judgeConfig?.apiKey || this._requestNimKey || process.env.NIM_API_KEY || process.env.DEEPSEEK_API_KEY;
+          const fusionBase = this._judgeConfig?.baseUrl || undefined;
           const fusionResult = await withTimeout(
-            runFusion(taskId, req.prompt, answersArr),
+            runFusion(taskId, req.prompt, answersArr, fusionKey, fusionBase),
             FUSION_TIMEOUT_MS,
             'Fusion'
           );
@@ -199,8 +226,18 @@ class TaskManager {
           sseManager.publish(taskId, "fusion", fusionResult);
         } catch (fusionErr) {
           console.error(`[task] fusion error: ${fusionErr instanceof Error ? fusionErr.message : fusionErr}`);
-          sseManager.publish(taskId, "judge_error", {
-            error: fusionErr instanceof Error ? fusionErr.message : "Fusion failed",
+          // 融合失败时也发一个降级结果，让前端能看到原始回答
+          const fallbackAnswers = req.models
+            .filter((m) => task.completedModels.has(m))
+            .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
+          const fallbackText = fallbackAnswers
+            .slice(0, Math.min(fallbackAnswers.length, 6))
+            .map((a) => `## ${a.model}\n\n${a.content}`)
+            .join('\n\n---\n\n');
+          sseManager.publish(taskId, "fusion", {
+            consensus: ['融合引擎调用失败。以下为各模型原始回答：'],
+            divergences: [],
+            synthesized: fallbackText,
           });
         }
       } catch (judgeErr) {
@@ -222,8 +259,9 @@ class TaskManager {
             sseManager.publish(taskId, "judge", judgeResult);
 
             try {
+              const fusionKey = process.env.NIM_API_KEY || process.env.DEEPSEEK_API_KEY;
               const fusionResult = await withTimeout(
-                runFusion(taskId, req.prompt, answersArr),
+                runFusion(taskId, req.prompt, answersArr, fusionKey),
                 FUSION_TIMEOUT_MS,
                 'Fusion retry'
               );

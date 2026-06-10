@@ -64,6 +64,7 @@ export async function runFusion(
       maxOutputTokens: 4096,
     });
 
+    console.log(`[fusion] API returned ${result.text.length} chars, model=${fusionModel}`);
     return parseFusionResponse(result.text, answers);
   } catch (e) {
     console.warn('[fusion] runFusion failed', e);

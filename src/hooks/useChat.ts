@@ -50,25 +50,31 @@ export function useChat() {
           }
         } catch { console.warn('[useChat] custom models JSON parse failed'); }
 
-        // NVIDIA NIM — 按模型 ID 映射
+        // NVIDIA NIM — 按模型 ID 映射（从 NIM API 查询验证）
         const nimKey = localStorage.getItem("arenaqa-NIM_API_KEY");
         const NIM_MODEL_MAP: Record<string, string> = {
           "nim-deepseek-v4-flash": "deepseek-ai/deepseek-v4-flash",
           "nim-deepseek-v4-pro": "deepseek-ai/deepseek-v4-pro",
           "nim-qwen3-next": "qwen/qwen3-next-80b-a3b-instruct",
-          "nim-qwen3.5-122b": "qwen/qwen3.5-122b-a10b",
           "nim-step-3.5-flash": "stepfun-ai/step-3.5-flash",
+          "nim-step-3.7-flash": "stepfun-ai/step-3.7-flash",
           "nim-gemma-4": "google/gemma-4-31b-it",
           "nim-llama-3.1-8b": "meta/llama-3.1-8b-instruct",
-          "nim-kimi-k2.6": "moonshotai/kimi-k2.6",
-          "nim-glm-5.1": "z-ai/glm-5.1",
-          "nim-minimax-m2.7": "minimaxai/minimax-m2.7",
-          "nim-yi-large": "01-ai/yi-large",
           "nim-llama-4": "meta/llama-4-maverick-17b-128e-instruct",
           "nim-llama-3.3-70b": "meta/llama-3.3-70b-instruct",
           "nim-mistral-large3": "mistralai/mistral-large-3-675b-instruct-2512",
-          "nim-nemotron-mini": "nvidia/nemotron-mini-4b-instruct",
           "nim-mistral-nemotron": "mistralai/mistral-nemotron-instruct",
+          "nim-minimax-m2.7": "minimaxai/minimax-m2.7",
+          "nim-nemotron-mini": "nvidia/nemotron-mini-4b-instruct",
+          "nim-phi-4-mini": "microsoft/phi-4-mini-instruct",
+          "nim-mistral-small-4": "mistralai/mistral-small-4-119b-2603",
+          "nim-qwen3-coder-480b": "qwen/qwen3-coder-480b-a35b-instruct",
+          "nim-nemotron-ultra-253b": "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+          "nim-mistral-medium-3.5": "mistralai/mistral-medium-3.5-128b",
+          "nim-qwen3.5-122b": "qwen/qwen3.5-122b-a10b",
+          "nim-yi-large": "01-ai/yi-large",
+          "nim-glm-5.1": "z-ai/glm-5.1",
+          "nim-kimi-k2.6": "moonshotai/kimi-k2.6",
         };
         models.forEach((m) => {
           const realModelId = NIM_MODEL_MAP[m];
