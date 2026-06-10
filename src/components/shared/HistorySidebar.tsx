@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { HistoryList } from "./HistoryList";
 
@@ -18,14 +18,15 @@ interface Props {
 
 export function HistorySidebar({ collapsed, onToggle }: Props) {
   const [items, setItems] = useState<HistoryItem[]>([]);
+  const loadDetailSeq = useRef(0);
 
   const fetchList = useCallback(async () => {
     try {
       const res = await fetch("/api/history?limit=50");
       const data = await res.json();
       setItems(data.items || []);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[HistorySidebar] fetchList failed', e);
     }
   }, []);
 
@@ -34,14 +35,13 @@ export function HistorySidebar({ collapsed, onToggle }: Props) {
   }, [fetchList]);
 
   const loadDetail = useCallback(async (id: string) => {
+    loadDetailSeq.current += 1;
+    const seq = loadDetailSeq.current;
     try {
       const res = await fetch(`/api/history/${id}`);
       if (!res.ok) return;
+      if (seq !== loadDetailSeq.current) return;
       const data = await res.json();
-
-      const store = useChatStore.getState();
-      store.reset();
-      store.setStatus("complete");
 
       const answers: Record<string, { model: string; content: string; status: "done" | "error"; latencyMs?: number; error?: string }> = {};
       data.answers?.forEach((a: { model: string; content: string; status: string; latencyMs?: number; error?: string }) => {
@@ -60,9 +60,10 @@ export function HistorySidebar({ collapsed, onToggle }: Props) {
         fusion: data.fusion || null,
         lastPrompt: data.prompt,
         status: "complete",
+        currentHistoryId: id,
       });
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[HistorySidebar] loadDetail failed', e);
     }
   }, []);
 

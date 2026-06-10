@@ -65,7 +65,8 @@ export async function runFusion(
     });
 
     return parseFusionResponse(result.text, answers);
-  } catch {
+  } catch (e) {
+    console.warn('[fusion] runFusion failed', e);
     // 融合失败，降级为简单拼接
     return {
       consensus: ['融合引擎调用失败'],
@@ -140,7 +141,8 @@ export function parseFusionResponse(
         : [],
       synthesized: String(parsed.synthesized ?? ''),
     };
-  } catch {
+  } catch (e) {
+    console.warn('[fusion] parseFusionResponse failed', e);
     // 降级：简单拼接
     const divergences: Divergence[] = [];
     const shortContents = answers.slice(0, Math.min(answers.length, 3));

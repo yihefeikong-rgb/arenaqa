@@ -43,7 +43,8 @@ export async function GET(
           }
         : null,
     });
-  } catch {
+  } catch (e) {
+    console.warn('[history] GET detail error', e);
     return NextResponse.json({ error: "获取失败" }, { status: 500 });
   }
 }
@@ -56,7 +57,8 @@ export async function DELETE(
     const { id } = await params;
     await prisma.conversation.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (e) {
+    console.warn('[history] DELETE detail error', e);
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
 }
@@ -101,7 +103,8 @@ export async function PATCH(
 
     await prisma.conversation.update({ where: { id }, data });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (e) {
+    console.warn('[history] PATCH detail error', e);
     return NextResponse.json({ error: "更新失败" }, { status: 500 });
   }
 }

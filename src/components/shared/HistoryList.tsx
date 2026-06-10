@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useChatStore } from "@/stores/chat-store";
 
 interface HistoryItem {
@@ -38,6 +38,7 @@ export function HistoryList() {
   const [loading, setLoading] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameText, setRenameText] = useState("");
+  const loadDetailSeq = useRef(0);
 
   const fetchList = useCallback(async (q = "") => {
     setLoading(true);
@@ -45,8 +46,8 @@ export function HistoryList() {
       const res = await fetch(`/api/history?limit=50&q=${encodeURIComponent(q)}`);
       const data = await res.json();
       setItems(data.items || []);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[HistoryList] fetch list failed', e);
     } finally {
       setLoading(false);
     }
@@ -57,14 +58,13 @@ export function HistoryList() {
   }, [fetchList]);
 
   const loadDetail = useCallback(async (id: string) => {
+    loadDetailSeq.current += 1;
+    const seq = loadDetailSeq.current;
     try {
       const res = await fetch(`/api/history/${id}`);
       if (!res.ok) return;
+      if (seq !== loadDetailSeq.current) return; // 竞态：最新请求不是当前，放弃本次
       const data = await res.json();
-
-      const store = useChatStore.getState();
-      store.reset();
-      store.setStatus("complete");
 
       const answers: Record<string, { model: string; content: string; status: "done" | "error"; latencyMs?: number; error?: string }> = {};
       data.answers?.forEach((a: { model: string; content: string; status: string; latencyMs?: number; error?: string }) => {
@@ -85,8 +85,8 @@ export function HistoryList() {
         status: "complete",
         currentHistoryId: id,
       });
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[HistoryList] loadDetail error', e);
     }
   }, []);
 
@@ -95,8 +95,8 @@ export function HistoryList() {
       try {
         await fetch(`/api/history/${id}`, { method: "DELETE" });
         setItems((prev) => prev.filter((i) => i.id !== id));
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn('[HistoryList] delete item failed', e);
       }
     },
     []
@@ -113,8 +113,8 @@ export function HistoryList() {
       setItems((prev) =>
         prev.map((i) => (i.id === id ? { ...i, prompt: newPrompt.trim() } : i))
       );
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[HistoryList] rename item failed', e);
     }
     setRenamingId(null);
   }, []);
@@ -124,8 +124,8 @@ export function HistoryList() {
     try {
       await fetch("/api/history", { method: "DELETE" });
       setItems([]);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[HistoryList] clear all failed', e);
     }
   }, []);
 

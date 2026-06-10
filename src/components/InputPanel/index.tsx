@@ -102,11 +102,12 @@ export function InputPanel() {
                 });
               });
             }
-          } catch { /* ignore */ }
+          } catch { console.warn('[InputPanel] custom models JSON parse failed'); }
 
           setModelDefs(models);
         })
-        .catch(() => {
+        .catch((e) => {
+          console.warn('[InputPanel] /api/models fetch failed, using defaults', e);
           setModelDefs([
             { id: "deepseek", displayName: "DeepSeek V3", configured: true, description: "", providerType: "openai_compat" },
             { id: "qwen", displayName: "通义千问", configured: true, description: "", providerType: "openai_compat" },
@@ -118,11 +119,12 @@ export function InputPanel() {
 
     loadModels();
     setNimKey(localStorage.getItem("arenaqa-NIM_API_KEY") || "");
-    window.addEventListener("arenaqa-keys-updated", () => {
+    const handleKeysUpdated = () => {
       setNimKey(localStorage.getItem("arenaqa-NIM_API_KEY") || "");
       loadModels();
-    });
-    return () => window.removeEventListener("arenaqa-keys-updated", loadModels);
+    };
+    window.addEventListener("arenaqa-keys-updated", handleKeysUpdated);
+    return () => window.removeEventListener("arenaqa-keys-updated", handleKeysUpdated);
   }, []);
 
   const isFull = selectedModels.length >= 6;

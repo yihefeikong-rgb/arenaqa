@@ -30,7 +30,7 @@ function loadCustomModels(): CustomModel[] {
   try {
     const raw = localStorage.getItem("arenaqa-custom-models");
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch { console.warn('[SettingsModal] loadCustomModels JSON parse failed'); return []; }
 }
 
 function saveCustomModels(models: CustomModel[]) {

@@ -70,7 +70,7 @@ describe('provider-registry', () => {
   });
 
   describe('initializeProviders', () => {
-    it('should maintain module-level cache across calls', async () => {
+    it('should return consistent model definitions across calls', async () => {
       clearAllApiKeys();
       vi.stubEnv('DEEPSEEK_API_KEY', 'sk-ds-test');
 
@@ -79,7 +79,7 @@ describe('provider-registry', () => {
       const second = mod.initializeProviders();
 
       expect(second.length).toBeGreaterThanOrEqual(1);
-      expect(first).toBe(second); // same reference (cached)
+      expect(first.length).toBe(second.length); // same count, refreshed each call
     });
   });
 });

@@ -48,7 +48,7 @@ export function useChat() {
               id: m.id, name: m.name, apiBase: m.apiBase, modelId: m.modelId,
             }));
           }
-        } catch { /* ignore */ }
+        } catch { console.warn('[useChat] custom models JSON parse failed'); }
 
         // NVIDIA NIM — 按模型 ID 映射
         const nimKey = localStorage.getItem("arenaqa-NIM_API_KEY");
@@ -91,7 +91,7 @@ export function useChat() {
               if (m.apiKey) CUSTOM_KEYS[m.id] = m.apiKey;
             });
           }
-        } catch { /* ignore */ }
+        } catch { console.warn('[useChat] custom models JSON parse failed (line 94)'); }
         if (nimKey) {
           models.forEach((m) => {
             if (m.startsWith("nim-")) CUSTOM_KEYS[m] = nimKey;
@@ -163,22 +163,21 @@ export function useChat() {
             const data = JSON.parse(me.data);
             store.setAnswerError(data.model, data.error);
           } catch {
-            // 非 JSON error 事件，忽略
+            // 非 JSON error 事件，可能为 EventSource 内部状态事件
+            console.warn('[useChat] SSE error parse failed (may be internal)');
           }
         });
 
         eventSource.addEventListener("judge", (e: Event) => {
           const me = e as MessageEvent;
           const data = JSON.parse(me.data);
-          store.setScores(data.scores);
-          store.setStatus("judging");
+          useChatStore.setState({ scores: data.scores, status: "judging" as const });
         });
 
         eventSource.addEventListener("fusion", (e: Event) => {
           const me = e as MessageEvent;
           const data = JSON.parse(me.data);
-          store.setFusion(data);
-          store.setStatus("fusing");
+          useChatStore.setState({ fusion: data, status: "fusing" as const });
         });
 
         eventSource.addEventListener("complete", () => {
@@ -204,7 +203,7 @@ export function useChat() {
               scores: state.scores,
               fusion: state.fusion,
             }),
-          }).catch(() => {});
+          }).catch((e) => { console.warn('[useChat] history save failed', e); });
 
           eventSource.close();
           eventSourceRef.current = null;
@@ -215,7 +214,7 @@ export function useChat() {
             const me = e as MessageEvent;
             JSON.parse(me.data);
           } catch {
-            // ignore
+            console.warn('[useChat] judge_error JSON parse failed');
           }
           store.setStatus("complete");
         });
@@ -225,6 +224,7 @@ export function useChat() {
           // 关闭会导致后续事件丢失
         };
       } catch (err) {
+        console.warn('[useChat] sendChat failed', err);
         store.setStatus("idle");
       }
     },
@@ -245,8 +245,8 @@ export function useChat() {
 
     try {
       await fetch(`/api/chat/abort/${taskId}`, { method: "POST" });
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[useChat] abort fetch failed', e);
     }
 
     store.setStatus("idle");
@@ -263,7 +263,7 @@ export function useChat() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ model }),
           });
-        } catch { /* ignore */ }
+        } catch (e) { console.warn('[useChat] stop model fetch failed', e); }
       }
     },
     [store]
@@ -314,7 +314,7 @@ export function useChat() {
           store.setAnswerError(data.model, data.error);
           retryEs.close();
         } catch {
-          // ignore
+          console.warn('[useChat] retry error parse failed');
         }
       });
 

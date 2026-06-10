@@ -62,7 +62,7 @@ export function AnswerColumn({ model }: Props) {
             comment: type === "dislike" ? dislikeComment : undefined,
           }),
         });
-      } catch { /* ignore */ }
+      } catch (e) { console.warn('[AnswerColumn] feedback submit failed', e); }
     },
     [feedback, model, lastPrompt, answer, dislikeComment]
   );
@@ -130,7 +130,7 @@ export function AnswerColumn({ model }: Props) {
       </div>
 
       {/* 回答内容 */}
-      <div className="px-4 py-3 overflow-y-auto max-h-[400px]">
+      <div className="px-4 py-3 overflow-y-auto max-h-[min(400px,50vh)]">
         {isStreaming && !hasContent ? (
           <div className="space-y-2">
             {[88, 72, 90, 60, 78].map((w, i) => (

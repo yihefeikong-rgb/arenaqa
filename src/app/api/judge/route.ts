@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
         const key = judgeConfig?.apiKey;
         const url = judgeConfig?.baseUrl;
         return await runFusion('history', prompt, answers, key, url);
-      } catch {
+      } catch (e) {
+        console.warn('[judge] fusion error in re-judge', e);
         return null;
       }
     })();

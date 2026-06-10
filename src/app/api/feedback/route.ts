@@ -16,6 +16,13 @@ export async function POST(req: NextRequest) {
       comment?: string;
     };
 
+    if (!model || !type || !prompt) {
+      return NextResponse.json({ success: false, error: "缺少必填字段 (model/type/prompt)" }, { status: 422 });
+    }
+    if (type !== "like" && type !== "dislike") {
+      return NextResponse.json({ success: false, error: "type 必须是 like 或 dislike" }, { status: 422 });
+    }
+
     // 只保留前 200 字作为摘要
     const answerSnippet = answer.slice(0, 200);
 
@@ -31,7 +38,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, id: feedback.id });
-  } catch {
+  } catch (e) {
+    console.warn('[feedback] POST error', e);
     return NextResponse.json({ success: false, error: "提交失败" }, { status: 500 });
   }
 }
@@ -61,7 +69,8 @@ export async function GET(req: NextRequest) {
       dislikes,
       modelStats: modelStats.map((m) => ({ model: m.model, likes: m._count.model })),
     });
-  } catch {
+  } catch (e) {
+    console.warn('[feedback] GET stats error', e);
     return NextResponse.json({ total: 0, likes: 0, dislikes: 0, modelStats: [] });
   }
 }

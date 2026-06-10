@@ -135,12 +135,8 @@ export function registerProvidersFromEnv(): ModelDef[] {
 
 /**
  * 获取所有模型的定义（含已配置/未配置状态）
+ * 开发模式下每次调用都重新读取 .env，以支持 HMR 环境变更
  */
-let _modelDefs: ModelDef[] = [];
-
 export function initializeProviders(): ModelDef[] {
-  if (_modelDefs.length === 0) {
-    _modelDefs = registerProvidersFromEnv();
-  }
-  return _modelDefs;
+  return registerProvidersFromEnv();
 }

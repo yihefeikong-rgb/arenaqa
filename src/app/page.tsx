@@ -239,10 +239,10 @@ export default function Home() {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ scores: data.scores, fusion: data.fusion }),
-                          }).catch(() => {});
+                          }).catch((e) => { console.warn('[reJudge] history PATCH failed', e); });
                         }
                       }
-                    } catch { /* ignore */ }
+                    } catch (e) { console.warn('[reJudge] fetch error', e); }
                     setReJudging(false);
                   }}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors ${reJudging ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-950/30'}`}

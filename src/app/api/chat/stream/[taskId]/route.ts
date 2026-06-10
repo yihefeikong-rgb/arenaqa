@@ -16,9 +16,7 @@ export async function GET(
       // 发送初始连接确认
       controller.enqueue(encoder.encode('event: connected\ndata: {}\n\n'));
 
-      // 订阅 SSE 事件（let 避免 subscribe 同步回调中引用未初始化的 const）
-      let unsubscribe = sseManager.subscribe(taskId, () => {});
-      unsubscribe = sseManager.subscribe(taskId, (event) => {
+      const unsubscribe = sseManager.subscribe(taskId, (event) => {
         const data = `event: ${event.event}\ndata: ${event.data}\n\n`;
         controller.enqueue(encoder.encode(data));
 

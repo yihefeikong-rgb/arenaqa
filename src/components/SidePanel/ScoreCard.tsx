@@ -17,6 +17,28 @@ const MODEL_GRADIENT: Record<string, string> = {
   gemini: "from-emerald-500 to-teal-500",
 };
 
+const GRADIENT_POOL = [
+  "from-cyan-500 to-teal-500",
+  "from-pink-500 to-rose-500",
+  "from-lime-500 to-green-500",
+  "from-sky-500 to-blue-500",
+  "from-purple-500 to-violet-500",
+];
+
+function getFallbackMeta(model: string): { name: string; icon: string } {
+  const name = model
+    .replace(/^nim-/, "")
+    .replace(/^custom-/, "")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return { name, icon: name.slice(0, 2).toUpperCase() };
+}
+
+function getGradient(model: string, index: number): string {
+  if (MODEL_GRADIENT[model]) return MODEL_GRADIENT[model];
+  return GRADIENT_POOL[index % GRADIENT_POOL.length];
+}
+
 const DIM_CONFIG = [
   { key: "accuracy" as const, label: "准确性", color: "#3B82F6" },
   { key: "completeness" as const, label: "完整性", color: "#10B981" },
@@ -30,7 +52,7 @@ interface Props {
 }
 
 export function ScoreCard({ score, index }: Props) {
-  const meta = MODEL_META[score.model];
+  const meta = MODEL_META[score.model] || getFallbackMeta(score.model);
   const barRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -42,7 +64,7 @@ export function ScoreCard({ score, index }: Props) {
     return () => clearTimeout(timer);
   }, [score, index]);
 
-  const gradient = MODEL_GRADIENT[score.model] || "from-gray-500 to-gray-600";
+  const gradient = getGradient(score.model, index);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all">

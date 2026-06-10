@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ taskId: string }> }
 ) {
   const { taskId } = await params;
-  const body = await req.json().catch(() => ({}));
+  const body = await req.json().catch((e) => { console.warn('[stop] JSON parse failed', e); return {}; });
   const { model } = body as { model?: string };
 
   if (!model) {

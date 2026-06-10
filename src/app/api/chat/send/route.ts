@@ -11,8 +11,15 @@ export async function POST(req: NextRequest) {
     if (!body.prompt?.trim()) {
       return NextResponse.json({ detail: 'Prompt is required' }, { status: 422 });
     }
+    const MAX_PROMPT_LENGTH = 8000;
+    if (body.prompt.length > MAX_PROMPT_LENGTH) {
+      return NextResponse.json({ detail: `Prompt too long (max ${MAX_PROMPT_LENGTH} chars)` }, { status: 422 });
+    }
     if (!body.models?.length) {
       return NextResponse.json({ detail: 'At least one model is required' }, { status: 400 });
+    }
+    if (body.models.length > 6) {
+      return NextResponse.json({ detail: 'Max 6 models allowed' }, { status: 400 });
     }
 
     // 模型校验：支持 .env 注册的 + 请求中携带 apiKeys 的 + 自定义模型

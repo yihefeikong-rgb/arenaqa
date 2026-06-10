@@ -86,5 +86,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       scores: [],
       fusion: null,
       taskId: null,
+      currentHistoryId: null,
     }),
 }));

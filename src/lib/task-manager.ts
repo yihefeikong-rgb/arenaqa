@@ -13,6 +13,19 @@ import { runJudge } from "./judge";
 import { runFusion } from "./fusion";
 import type { ChatRequest } from "@/types";
 
+/** Promise 超时封装 */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+const JUDGE_TIMEOUT_MS = 30_000;
+const FUSION_TIMEOUT_MS = 30_000;
+
 interface RunningTask {
   taskId: string;
   prompt: string;
@@ -117,7 +130,7 @@ class TaskManager {
             const cfg = configMap.get(model);
             runtimeProviders.set(model, this.createRuntimeProvider(model, key, cfg?.apiBase, cfg?.modelId));
           } catch {
-            // 创建失败则 fallback 到已注册的 provider
+            console.warn(`[task] createRuntimeProvider failed for ${model}, falling back to registered`);
           }
         }
       }
@@ -153,6 +166,9 @@ class TaskManager {
       const elapsed = Date.now() - startTime;
 
       if (task.completedModels.size === 0) {
+        sseManager.publish(taskId, "judge_error", {
+          error: "所有模型均返回失败，无法评分",
+        });
         sseManager.publish(taskId, "complete", { taskId, totalLatencyMs: elapsed, allFailed: true });
         sseManager.complete(taskId);
         return;
@@ -164,13 +180,21 @@ class TaskManager {
           .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
 
         console.log(`[task] running judge with ${answersArr.length} completed models`);
-        const judgeResult = await runJudge(taskId, req.prompt, answersArr, this._judgeConfig);
+        const judgeResult = await withTimeout(
+          runJudge(taskId, req.prompt, answersArr, this._judgeConfig),
+          JUDGE_TIMEOUT_MS,
+          'Judge'
+        );
         console.log(`[task] judge done, scores=${judgeResult.scores.length}`);
         sseManager.publish(taskId, "judge", judgeResult);
 
         try {
           console.log('[task] running fusion...');
-          const fusionResult = await runFusion(taskId, req.prompt, answersArr);
+          const fusionResult = await withTimeout(
+            runFusion(taskId, req.prompt, answersArr),
+            FUSION_TIMEOUT_MS,
+            'Fusion'
+          );
           console.log('[task] fusion done');
           sseManager.publish(taskId, "fusion", fusionResult);
         } catch (fusionErr) {
@@ -189,14 +213,22 @@ class TaskManager {
             const answersArr = req.models
               .filter((m) => task.completedModels.has(m))
               .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
-            const judgeResult = await runJudge(taskId, req.prompt, answersArr, null); // null → NIM fallback
+            const judgeResult = await withTimeout(
+              runJudge(taskId, req.prompt, answersArr, null), // null → NIM fallback
+              JUDGE_TIMEOUT_MS,
+              'Judge retry'
+            );
             console.log(`[task] judge retry done, scores=${judgeResult.scores.length}`);
             sseManager.publish(taskId, "judge", judgeResult);
 
             try {
-              const fusionResult = await runFusion(taskId, req.prompt, answersArr);
+              const fusionResult = await withTimeout(
+                runFusion(taskId, req.prompt, answersArr),
+                FUSION_TIMEOUT_MS,
+                'Fusion retry'
+              );
               sseManager.publish(taskId, "fusion", fusionResult);
-            } catch { /* ignore */ }
+            } catch { console.warn('[task] NIM fallback fusion failed'); }
           } catch (retryErr) {
             console.error(`[task] judge retry also failed: ${retryErr}`);
             sseManager.publish(taskId, "judge_error", {
@@ -295,7 +327,7 @@ class TaskManager {
     task.completed = true;
 
     // 用已完成的模型跑评分和融合
-    this.finalizeWithCompleted(taskId).catch(() => {});
+    this.finalizeWithCompleted(taskId).catch((e) => { console.warn('[task] finalizeWithCompleted failed in abort', e); });
 
     return true;
   }
@@ -313,12 +345,12 @@ class TaskManager {
       try {
         const judgeResult = await runJudge(taskId, task.prompt, completedArr, this._judgeConfig);
         sseManager.publish(taskId, "judge", judgeResult);
-      } catch { /* ignore */ }
+      } catch { console.warn('[task] finalize judge failed'); }
 
       try {
         const fusionResult = await runFusion(taskId, task.prompt, completedArr);
         sseManager.publish(taskId, "fusion", fusionResult);
-      } catch { /* ignore */ }
+      } catch { console.warn('[task] finalize fusion failed'); }
     }
 
     sseManager.publish(taskId, "complete", { taskId, totalLatencyMs: Date.now() - task.startTime });

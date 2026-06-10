@@ -160,7 +160,8 @@ export function parseJudgeResponse(
     }));
 
     return { scores };
-  } catch {
+  } catch (e) {
+    console.warn('[judge] parseJudgeResponse failed', e);
     // 解析失败，返回降级评分
     return {
       scores: answers.map((a) => ({

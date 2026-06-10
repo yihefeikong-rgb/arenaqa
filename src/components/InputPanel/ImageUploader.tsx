@@ -33,7 +33,8 @@ export function ImageUploader({ images, onChange }: Props) {
       try {
         const base64List = await Promise.all(toAdd.map(fileToBase64));
         onChange([...images, ...base64List]);
-      } catch {
+      } catch (e) {
+        console.warn('[ImageUploader] fileToBase64 failed', e);
         // 图片太大或读取失败，静默忽略
       }
     },

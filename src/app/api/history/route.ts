@@ -89,7 +89,8 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ items: list, total, page, limit });
-  } catch {
+  } catch (e) {
+    console.warn('[history] GET list error', e);
     return NextResponse.json({ items: [], total: 0, page: 1, limit: 20 });
   }
 }
@@ -102,7 +103,8 @@ export async function DELETE() {
     await prisma.answer.deleteMany();
     await prisma.conversation.deleteMany();
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (e) {
+    console.warn('[history] DELETE all error', e);
     return NextResponse.json({ success: false, error: "清空失败" }, { status: 500 });
   }
 }
