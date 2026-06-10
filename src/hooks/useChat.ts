@@ -5,7 +5,6 @@ import { useChatStore } from "@/stores/chat-store";
 import { useStreamBuffer } from "./useStreamBuffer";
 
 export function useChat() {
-  const store = useChatStore();
   const eventSourceRef = useRef<EventSource | null>(null);
   const { addChunk, flushAll, reset: resetBuffer } = useStreamBuffer();
 
@@ -13,13 +12,14 @@ export function useChat() {
     async (prompt: string, models: string[]) => {
       if (!prompt.trim() || models.length === 0) return;
 
-      store.reset();
+      const st = useChatStore.getState();
+      st.reset();
       resetBuffer();
       useChatStore.setState({ lastPrompt: prompt });
-      store.setStatus("streaming");
+      st.setStatus("streaming");
 
       models.forEach((model) => {
-        store.appendChunk(model, "");
+        st.appendChunk(model, "");
       });
 
       try {
@@ -129,7 +129,7 @@ export function useChat() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const { taskId } = await res.json();
-        store.setTaskId(taskId);
+        useChatStore.getState().setTaskId(taskId);
 
         const eventSource = new EventSource(`/api/chat/stream/${taskId}`);
         eventSourceRef.current = eventSource;
@@ -144,7 +144,7 @@ export function useChat() {
           const currentAnswers = useChatStore.getState().answers;
           if (currentAnswers[data.model]?.status === "stopped") return;
           addChunk(data.model, data.content, (model, text) => {
-            store.appendChunk(model, text);
+            useChatStore.getState().appendChunk(model, text);
           });
         });
 
@@ -152,16 +152,16 @@ export function useChat() {
           const me = e as MessageEvent;
           const data = JSON.parse(me.data);
           flushAll((model, text) => {
-            store.appendChunk(model, text);
+            useChatStore.getState().appendChunk(model, text);
           });
-          store.setAnswerDone(data.model, data.latencyMs);
+          useChatStore.getState().setAnswerDone(data.model, data.latencyMs);
         });
 
         eventSource.addEventListener("error", (e: Event) => {
           try {
             const me = e as MessageEvent;
             const data = JSON.parse(me.data);
-            store.setAnswerError(data.model, data.error);
+            useChatStore.getState().setAnswerError(data.model, data.error);
           } catch {
             // 非 JSON error 事件，可能为 EventSource 内部状态事件
             console.warn('[useChat] SSE error parse failed (may be internal)');
@@ -182,9 +182,9 @@ export function useChat() {
 
         eventSource.addEventListener("complete", () => {
           flushAll((model, text) => {
-            store.appendChunk(model, text);
+            useChatStore.getState().appendChunk(model, text);
           });
-          store.setStatus("complete");
+          useChatStore.getState().setStatus("complete");
 
           // 自动保存历史记录
           const state = useChatStore.getState();
@@ -216,7 +216,7 @@ export function useChat() {
           } catch {
             console.warn('[useChat] judge_error JSON parse failed');
           }
-          store.setStatus("complete");
+          useChatStore.getState().setStatus("complete");
         });
 
         eventSource.onerror = () => {
@@ -225,14 +225,14 @@ export function useChat() {
         };
       } catch (err) {
         console.warn('[useChat] sendChat failed', err);
-        store.setStatus("idle");
+        useChatStore.getState().setStatus("idle");
       }
     },
-    [store]
+    [addChunk, flushAll, resetBuffer]
   );
 
   const abortChat = useCallback(async () => {
-    const { taskId } = store;
+    const { taskId } = useChatStore.getState();
     if (!taskId) return;
 
     if (eventSourceRef.current) {
@@ -249,12 +249,12 @@ export function useChat() {
       console.warn('[useChat] abort fetch failed', e);
     }
 
-    store.setStatus("idle");
-  }, [store]);
+    useChatStore.getState().setStatus("idle");
+  }, [resetBuffer]);
 
   const stopModel = useCallback(
     async (model: string) => {
-      store.stopModel(model);
+      useChatStore.getState().stopModel(model);
       const { taskId } = useChatStore.getState();
       if (taskId) {
         try {
@@ -266,7 +266,7 @@ export function useChat() {
         } catch (e) { console.warn('[useChat] stop model fetch failed', e); }
       }
     },
-    [store]
+    []
   );
 
   const retryModel = useCallback(
@@ -274,8 +274,9 @@ export function useChat() {
       const { lastPrompt } = useChatStore.getState();
       if (!lastPrompt) return;
 
-      store.setAnswerDone(model, 0);
-      store.appendChunk(model, "");
+      const st = useChatStore.getState();
+      st.setAnswerDone(model, 0);
+      st.appendChunk(model, "");
 
       const res = await fetch("/api/chat/send", {
         method: "POST",
@@ -284,7 +285,7 @@ export function useChat() {
       });
 
       if (!res.ok) {
-        store.setAnswerError(model, `请求失败 (${res.status})`);
+        st.setAnswerError(model, `请求失败 (${res.status})`);
         return;
       }
 
@@ -295,15 +296,15 @@ export function useChat() {
         const me = e as MessageEvent;
         const data = JSON.parse(me.data);
         addChunk(data.model, data.content, (m, text) => {
-          store.appendChunk(m, text);
+          useChatStore.getState().appendChunk(m, text);
         });
       });
 
       retryEs.addEventListener("done", (e: Event) => {
         const me = e as MessageEvent;
         const data = JSON.parse(me.data);
-        flushAll((m, text) => store.appendChunk(m, text));
-        store.setAnswerDone(data.model, data.latencyMs);
+        flushAll((m, text) => useChatStore.getState().appendChunk(m, text));
+        useChatStore.getState().setAnswerDone(data.model, data.latencyMs);
         retryEs.close();
       });
 
@@ -311,7 +312,7 @@ export function useChat() {
         try {
           const me = e as MessageEvent;
           const data = JSON.parse(me.data);
-          store.setAnswerError(data.model, data.error);
+          useChatStore.getState().setAnswerError(data.model, data.error);
           retryEs.close();
         } catch {
           console.warn('[useChat] retry error parse failed');
@@ -322,7 +323,7 @@ export function useChat() {
         retryEs.close();
       };
     },
-    [store, addChunk, flushAll]
+    [addChunk, flushAll]
   );
 
   return { sendChat, abortChat, stopModel, retryModel };

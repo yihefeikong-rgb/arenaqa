@@ -2,16 +2,6 @@
 
 > 最后更新：2026-06-10
 
-## P0 🔴 — 当前待审查
-
-- [ ] 全面审查计划见 `REVIEW-PLAN.md`
-- [ ] P0: 历史评分不显示（`/api/judge` 返回了 scores 但前端无反应）
-- [ ] P0: 所有静默 catch 加 console.warn/error
-- [ ] P1: API 参数验证（所有 endpoint）
-- [ ] P1: runJudge/runFusion 超时保护
-- [ ] P2: 组件 re-render 优化
-- [ ] P2: 安全审查
-
 ## DONE ✅ — 全部完成
 
 - [x] Kimi 计划 10/10（Markdown/缓冲/停止重试/输入框/历史/反馈/成本/免费模型/PWA）
@@ -21,3 +11,9 @@
 - [x] 免费模型健康监控：/api/models 返回 🟢🟡🔴，ModelCard 显示状态
 - [x] 代码清理：.gitignore 补充（coverage/ .codegraph/ .reasonix/）、P0 提交 + 构建
 - [x] 3 次提交推送至 GitHub（`642ee15` master）
+- [x] **P0**: 历史评分不显示修复
+- [x] **P0**: 所有静默 catch 加 console.warn/error
+- [x] **P1**: API 参数验证（所有 endpoint）
+- [x] **P1**: runJudge/runFusion 超时保护
+- [x] **P2**: 组件 re-render 优化（useChat 取消全量订阅 + page.tsx 拆出 AnswerGrid）
+- [x] **P2**: 安全审查（无注入风险，.env 已 ignore，localStorage API Key 作为本地工具可接受）

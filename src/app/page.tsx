@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { useChat } from "@/hooks/useChat";
 import { InputPanel } from "@/components/InputPanel";
-import { AnswerColumn } from "@/components/AnswerColumns/AnswerColumn";
-import { PlaceholderCard } from "@/components/AnswerColumns/PlaceholderCard";
-import { ScoreCard } from "@/components/SidePanel/ScoreCard";
+import { AnswerGrid } from "@/components/AnswerColumns/AnswerGrid";
+import { ScoreCarousel } from "@/components/SidePanel/ScoreCarousel";
 import { FusionBox } from "@/components/SidePanel/FusionBox";
 import { CostSummary } from "@/components/SidePanel/CostSummary";
 import { SettingsModal } from "@/components/shared/SettingsModal";
@@ -24,11 +23,9 @@ const STATUS_CONFIG: Record<string, { label: string; dotColor: string; bg: strin
 
 export default function Home() {
   const status = useChatStore((s) => s.status);
-  const selectedModels = useChatStore((s) => s.selectedModels);
-  const answers = useChatStore((s) => s.answers);
-  const lastPrompt = useChatStore((s) => s.lastPrompt);
   const scores = useChatStore((s) => s.scores);
   const fusion = useChatStore((s) => s.fusion);
+  const hasAnswers = useChatStore((s) => Object.keys(s.answers).length > 0);
   const { abortChat } = useChat();
 
   // 主题
@@ -56,11 +53,10 @@ export default function Home() {
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [leftTab, setLeftTab] = useState<"models" | "history">("models");
   const [mobileTab, setMobileTab] = useState<"models" | "chat" | "results">("chat");
+  const [resultTab, setResultTab] = useState<"scores" | "fusion" | "cost">("scores");
 
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.idle;
-  const hasAnswers = Object.keys(answers).length > 0;
   const hasResults = scores.length > 0;
-  const answerModels = [...new Set([...selectedModels, ...Object.keys(answers)])];
 
   return (
     <div className="h-dvh bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -154,52 +150,16 @@ export default function Home() {
         {/* Center: Answers + Input */}
         <section className={`min-h-0 flex-col min-w-0 animate-fade-in ${mobileTab === "chat" ? "flex" : "hidden"} md:flex`}>
           <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">模型回答</h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400">{answerModels.length} 个模型</span>
-              </div>
-              {lastPrompt && hasAnswers && (
-                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">问: {lastPrompt}</div>
-              )}
-            </div>
             <div className="p-4 flex-1 overflow-y-auto">
-              {!hasAnswers && selectedModels.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 py-16">
-                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-4 opacity-30">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z" />
-                  </svg>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">选择参赛模型</div>
-                  <div className="text-xs dark:text-gray-400 mb-4">最多支持 6 个 AI 同时对决</div>
-                  <button
-                    onClick={() => { setLeftTab("models"); setMobileTab("models"); }}
-                    className="px-4 py-2 text-xs font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-                  >
-                    去添加模型
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-                  {answerModels.map((model) => (
-                    <AnswerColumn key={model} model={model} />
-                  ))}
-                  {Array.from({ length: Math.max(0, 6 - answerModels.length) }).map((_, i) => (
-                    <PlaceholderCard
-                      key={`placeholder-${i}`}
-                      index={i}
-                      onClick={() => { setLeftTab("models"); setMobileTab("models"); }}
-                    />
-                  ))}
-                </div>
-              )}
+              <AnswerGrid onAddModel={() => { setLeftTab("models"); setMobileTab("models"); }} />
             </div>
           </div>
           <PromptInputBar />
         </section>
 
         {/* Right: Results */}
-        <section className={`min-h-0 animate-fade-in ${mobileTab === "results" ? "block" : "hidden"} lg:block`}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
+        <section className={`min-h-0 animate-fade-in self-start ${mobileTab === "results" ? "block" : "hidden"} lg:block`}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-none">
             <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">评分与融合</h3>
               {hasAnswers && (
@@ -212,7 +172,6 @@ export default function Home() {
                       model,
                       content: a.content,
                     }));
-                    // 从 localStorage 读 DeepSeek Key 传给后端
                     const dsKey = localStorage.getItem('arenaqa-DEEPSEEK_API_KEY');
                     try {
                       const res = await fetch('/api/judge', {
@@ -231,8 +190,6 @@ export default function Home() {
                         console.log('[reJudge] got', data.scores?.length, 'scores, fusion:', !!data.fusion);
                         console.log('[reJudge] first score:', JSON.stringify(data.scores?.[0]));
                         useChatStore.setState({ scores: data.scores, fusion: data.fusion });
-
-                        // 保存评分结果到历史记录
                         const historyId = useChatStore.getState().currentHistoryId;
                         if (historyId) {
                           fetch(`/api/history/${historyId}`, {
@@ -251,23 +208,45 @@ export default function Home() {
                 </button>
               )}
             </div>
-            <div className="p-4 flex-1 overflow-y-auto">
-              {!hasResults ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 py-10">
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-2 opacity-40"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">等待评分</div>
-                  <div className="text-xs dark:text-gray-400">所有模型回答完成后，AI 裁判将自动评分并生成综合答案</div>
-                </div>
-              ) : (
-                <div>
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">模型评分</div>
-                  {scores.map((score, i) => (
-                    <ScoreCard key={score.model} score={score} index={i} />
+            <div className="p-3 flex-1 flex flex-col min-h-0">
+              {/* 内容 Tab 切换 */}
+              {hasResults && (
+                <div className="flex gap-1 mb-3 shrink-0">
+                  {[
+                    { key: "scores" as const, label: "评分" },
+                    { key: "fusion" as const, label: "融合" },
+                    { key: "cost" as const, label: "成本" },
+                  ].map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setResultTab(t.key)}
+                      className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                        resultTab === t.key
+                          ? "bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
                   ))}
-                  {fusion && <FusionBox fusion={fusion} />}
-                  <CostSummary />
                 </div>
               )}
+              {/* 内容区 */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {!hasResults ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 py-10">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className="mb-2 opacity-40"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                    <div className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">等待评分</div>
+                    <div className="text-xs dark:text-gray-400">所有模型回答完成后，AI 裁判将自动评分并生成综合答案</div>
+                  </div>
+                ) : (
+                  <>
+                    {resultTab === "scores" && <ScoreCarousel scores={scores} />}
+                    {resultTab === "fusion" && fusion && <FusionBox fusion={fusion} />}
+                    {resultTab === "cost" && <CostSummary />}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </section>
