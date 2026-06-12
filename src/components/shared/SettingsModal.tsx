@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { NIM_SMALL_MODELS, NIM_LARGE_MODELS, getEnabledNimModels, saveEnabledNimModels } from "@/lib/nim-models";
+import { BUILTIN_MODELS, getLocalStorageKey } from "@/lib/model-registry";
 
 interface CustomModel {
   id: string;
@@ -10,22 +11,6 @@ interface CustomModel {
   apiKey: string;
   modelId: string;
 }
-
-interface BuiltinModelConfig {
-  id: string;
-  name: string;
-  storagePrefix: string;
-  defaultBaseUrl: string;
-  defaultModelId: string;
-  keyHint: string;
-}
-
-const BUILTIN_MODELS: BuiltinModelConfig[] = [
-  { id: "deepseek", name: "DeepSeek", storagePrefix: "DEEPSEEK", defaultBaseUrl: "https://api.deepseek.com", defaultModelId: "deepseek-chat", keyHint: "platform.deepseek.com" },
-  { id: "qwen", name: "通义千问", storagePrefix: "QWEN", defaultBaseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", defaultModelId: "qwen-plus", keyHint: "阿里云百炼" },
-  { id: "claude", name: "Claude", storagePrefix: "ANTHROPIC", defaultBaseUrl: "", defaultModelId: "claude-sonnet-4-20250514", keyHint: "console.anthropic.com" },
-  { id: "gemini", name: "Gemini", storagePrefix: "GEMINI", defaultBaseUrl: "", defaultModelId: "gemini-2.5-pro-preview-05-06", keyHint: "aistudio.google.com" },
-];
 
 function loadCustomModels(): CustomModel[] {
   try {
@@ -79,9 +64,9 @@ export function SettingsModal({ open, onClose }: Props) {
     const urls: Record<string, string> = {};
     const mids: Record<string, string> = {};
     BUILTIN_MODELS.forEach((m) => {
-      stored[m.storagePrefix] = localStorage.getItem(`arenaqa-${m.storagePrefix}_API_KEY`) || "";
-      urls[m.storagePrefix] = localStorage.getItem(`arenaqa-${m.storagePrefix}_BASE_URL`) || m.defaultBaseUrl;
-      mids[m.storagePrefix] = localStorage.getItem(`arenaqa-${m.storagePrefix}_MODEL_ID`) || m.defaultModelId;
+      stored[m.storagePrefix] = localStorage.getItem(getLocalStorageKey(m.storagePrefix, 'API_KEY')) || "";
+      urls[m.storagePrefix] = localStorage.getItem(getLocalStorageKey(m.storagePrefix, 'BASE_URL')) || m.defaultBaseUrl;
+      mids[m.storagePrefix] = localStorage.getItem(getLocalStorageKey(m.storagePrefix, 'MODEL_ID')) || m.defaultModelId;
     });
     setKeys(stored);
     setBaseUrls(urls);
@@ -98,12 +83,15 @@ export function SettingsModal({ open, onClose }: Props) {
   const handleSaveKeys = () => {
     BUILTIN_MODELS.forEach((m) => {
       const prefix = m.storagePrefix;
-      if (keys[prefix]) localStorage.setItem(`arenaqa-${prefix}_API_KEY`, keys[prefix]);
-      else localStorage.removeItem(`arenaqa-${prefix}_API_KEY`);
-      if (baseUrls[prefix] && baseUrls[prefix] !== m.defaultBaseUrl) localStorage.setItem(`arenaqa-${prefix}_BASE_URL`, baseUrls[prefix]);
-      else localStorage.removeItem(`arenaqa-${prefix}_BASE_URL`);
-      if (modelIds[prefix] && modelIds[prefix] !== m.defaultModelId) localStorage.setItem(`arenaqa-${prefix}_MODEL_ID`, modelIds[prefix]);
-      else localStorage.removeItem(`arenaqa-${prefix}_MODEL_ID`);
+      const apiKeyKey = getLocalStorageKey(prefix, 'API_KEY');
+      const baseUrlKey = getLocalStorageKey(prefix, 'BASE_URL');
+      const modelIdKey = getLocalStorageKey(prefix, 'MODEL_ID');
+      if (keys[prefix]) localStorage.setItem(apiKeyKey, keys[prefix]);
+      else localStorage.removeItem(apiKeyKey);
+      if (baseUrls[prefix] && baseUrls[prefix] !== m.defaultBaseUrl) localStorage.setItem(baseUrlKey, baseUrls[prefix]);
+      else localStorage.removeItem(baseUrlKey);
+      if (modelIds[prefix] && modelIds[prefix] !== m.defaultModelId) localStorage.setItem(modelIdKey, modelIds[prefix]);
+      else localStorage.removeItem(modelIdKey);
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -210,7 +198,7 @@ export function SettingsModal({ open, onClose }: Props) {
               <p className="text-xs text-gray-500 dark:text-gray-400">API Key 保存在本地浏览器中。可自定义每个模型的具体版本和 API 地址，避免调用到高价模型。</p>
               {BUILTIN_MODELS.map((m) => (
                 <div key={m.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-xl space-y-2">
-                  <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{m.name}</div>
+                  <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{m.displayName}</div>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">API Key</label>
                     <div className="relative">

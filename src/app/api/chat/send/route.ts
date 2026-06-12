@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!body.prompt?.trim()) {
       return NextResponse.json({ detail: 'Prompt is required' }, { status: 422 });
     }
-    const MAX_PROMPT_LENGTH = 8000;
+    const MAX_PROMPT_LENGTH = 4000;
     if (body.prompt.length > MAX_PROMPT_LENGTH) {
       return NextResponse.json({ detail: `Prompt too long (max ${MAX_PROMPT_LENGTH} chars)` }, { status: 422 });
     }

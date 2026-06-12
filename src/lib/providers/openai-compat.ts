@@ -26,7 +26,7 @@ export class OpenAICompatProvider extends BaseProvider {
       baseURL: config.apiBase,
       apiKey: config.apiKey,
     });
-    this.model = client.chat(config.modelId) as unknown as LanguageModel;
+    this.model = client.chat(config.modelId) as LanguageModel;
   }
 
   getModel(): LanguageModel {

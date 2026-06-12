@@ -4,6 +4,7 @@
 // ============================================================
 
 import { randomUUID } from "crypto";
+import { BUILTIN_MODELS, findBuiltinModel } from "./model-registry";
 import { BaseProvider } from "./providers/base";
 import { OpenAICompatProvider } from "./providers/openai-compat";
 import { NimProvider } from "./providers/nim";
@@ -40,23 +41,12 @@ interface RunningTask {
   runtimeProviders: Map<string, BaseProvider>;
 }
 
-// 模型→环境变量 Key 的映射
-const MODEL_KEY_MAP: Record<string, string> = {
-  deepseek: "DEEPSEEK_API_KEY",
-  qwen: "QWEN_API_KEY",
-  claude: "ANTHROPIC_API_KEY",
-  gemini: "GEMINI_API_KEY",
-};
-
-const MODEL_BASE_URL: Record<string, string> = {
-  deepseek: "https://api.deepseek.com/v1",
-  qwen: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-};
-
-const MODEL_ID: Record<string, string> = {
-  deepseek: "deepseek-chat",
-  qwen: "qwen-plus",
-};
+// 运行时 Provider 配置（从 model-registry 动态获取）
+function getModelDefaults(id: string): { baseUrl: string; modelId: string } {
+  const def = findBuiltinModel(id);
+  if (def) return { baseUrl: def.defaultBaseUrl, modelId: def.defaultModelId };
+  return { baseUrl: '', modelId: '' };
+}
 
 class TaskManager {
   private tasks = new Map<string, RunningTask>();
@@ -81,19 +71,21 @@ class TaskManager {
     overrideBaseUrl?: string,
     overrideModelId?: string
   ): BaseProvider {
+    const defaults = getModelDefaults(modelName);
+
     switch (modelName) {
       case "deepseek":
       case "qwen":
         return new OpenAICompatProvider({
           name: modelName,
-          apiBase: overrideBaseUrl || MODEL_BASE_URL[modelName],
+          apiBase: overrideBaseUrl || defaults.baseUrl,
           apiKey,
-          modelId: overrideModelId || MODEL_ID[modelName],
+          modelId: overrideModelId || defaults.modelId,
         });
       case "claude":
-        return new AnthropicProvider({ apiKey, modelId: overrideModelId || process.env.CLAUDE_MODEL_ID });
+        return new AnthropicProvider({ apiKey, modelId: overrideModelId || process.env.CLAUDE_MODEL_ID || defaults.modelId });
       case "gemini":
-        return new GoogleProvider({ apiKey, modelId: overrideModelId || process.env.GEMINI_MODEL_ID });
+        return new GoogleProvider({ apiKey, modelId: overrideModelId || process.env.GEMINI_MODEL_ID || defaults.modelId });
       default:
         // 检查自定义模型（custom- 开头等）
         const def = this._customModels.find((m) => m.id === modelName);

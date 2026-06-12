@@ -19,7 +19,7 @@ export class GoogleProvider extends BaseProvider {
   constructor(config: GoogleConfig) {
     super();
     const client = createGoogleGenerativeAI({ apiKey: config.apiKey });
-    this.model = client(config.modelId ?? 'gemini-2.5-pro-exp-03-25') as unknown as LanguageModel;
+    this.model = client(config.modelId ?? 'gemini-2.5-pro-exp-03-25') as LanguageModel;
   }
 
   getModel(): LanguageModel {

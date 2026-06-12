@@ -58,7 +58,7 @@ export async function runFusion(
     const fusionPrompt = buildFusionPrompt(prompt, answers);
 
     const result = await generateText({
-      model: client.chat(fusionModel) as unknown as LanguageModel,
+      model: client.chat(fusionModel) as LanguageModel,
       prompt: fusionPrompt,
       temperature: 0.2,
       maxOutputTokens: 4096,

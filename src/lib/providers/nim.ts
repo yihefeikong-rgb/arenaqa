@@ -4,7 +4,6 @@
 // 部分模型（如 Kimi）流式格式不标准，回退为非流式请求
 // ============================================================
 
-import type { LanguageModel } from 'ai';
 import { BaseProvider } from './base';
 
 const NIM_CHAT_ENDPOINT = 'https://integrate.api.nvidia.com/v1/chat/completions';
@@ -29,10 +28,6 @@ export class NimProvider extends BaseProvider {
     this.apiKey = config.apiKey;
     this.modelId = config.modelId;
     this.streaming = config.streaming ?? true;
-  }
-
-  getModel(): LanguageModel {
-    throw new Error('NimProvider does not support getModel() — use stream() directly');
   }
 
   async *stream(prompt: string, signal?: AbortSignal): AsyncIterable<string> {

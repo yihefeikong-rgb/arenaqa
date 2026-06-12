@@ -59,7 +59,7 @@ export async function runJudge(
     }
   }
 
-  console.log(`[judge] using key=${apiKey ? apiKey.slice(0, 8) + '...' : 'none'} base=${baseUrl} model=${modelId} answers=${answers.length}`);
+  console.log(`[judge] key=${apiKey ? '***' : 'none'} base=${baseUrl} model=${modelId} answers=${answers.length}`);
 
   // 没有 API Key 时不评分
   if (!apiKey) {
@@ -84,7 +84,7 @@ export async function runJudge(
   console.log(`[judge] calling AI for ${answers.length} answers...`);
 
   const result = await generateText({
-    model: client.chat(modelId) as unknown as LanguageModel,
+    model: client.chat(modelId) as LanguageModel,
     prompt: judgePrompt,
     temperature: 0.1,
     maxOutputTokens: 2000,

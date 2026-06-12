@@ -20,6 +20,9 @@ model Conversation {
   answers Answer[]
   judge   Judge?
   fusion  Fusion?
+
+  @@index([createdAt])
+  @@index([prompt])
 }
 
 model Answer {

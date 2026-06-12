@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { ModelCard } from "./ModelCard";
 import { NIM_SMALL_MODELS, NIM_LARGE_MODELS, getEnabledNimModels } from "@/lib/nim-models";
+import { BUILTIN_MODELS, getLocalStorageKey } from "@/lib/model-registry";
 
 const MODEL_GRADIENT: Record<string, string> = {
   deepseek: "from-blue-500 to-cyan-500",
@@ -42,21 +43,14 @@ export function InputPanel() {
   const selectModel = useChatStore((s) => s.selectModel);
   const deselectModel = useChatStore((s) => s.deselectModel);
 
-  const LS_KEY_MAP: Record<string, string> = {
-    deepseek: "DEEPSEEK_API_KEY",
-    qwen: "QWEN_API_KEY",
-    claude: "ANTHROPIC_API_KEY",
-    gemini: "GEMINI_API_KEY",
-  };
-
   useEffect(() => {
     const loadModels = () => {
       fetch("/api/models")
         .then((r) => r.json())
         .then((data) => {
           const models: ModelInfo[] = (data.models || []).map((m: { name: string; display_name: string; enabled: boolean; description: string; provider_type: string }) => {
-            const lsKey = LS_KEY_MAP[m.name];
-            const hasLocalKey = lsKey ? !!localStorage.getItem(`arenaqa-${lsKey}`) : false;
+            const def = BUILTIN_MODELS.find((d) => d.id === m.name);
+            const hasLocalKey = def ? !!localStorage.getItem(getLocalStorageKey(def.storagePrefix, 'API_KEY')) : false;
             return {
               id: m.name,
               displayName: m.display_name,

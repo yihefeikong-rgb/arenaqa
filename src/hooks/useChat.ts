@@ -3,6 +3,7 @@
 import { useCallback, useRef } from "react";
 import { useChatStore } from "@/stores/chat-store";
 import { useStreamBuffer } from "./useStreamBuffer";
+import { BUILTIN_MODELS, getLocalStorageKey } from "@/lib/model-registry";
 
 export function useChat() {
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -23,18 +24,12 @@ export function useChat() {
       });
 
       try {
-        // 读取用户设置的 API Key
+        // 读取用户设置的 API Key（从统一配置中心）
         const apiKeys: Record<string, string> = {};
-        const KEY_MAP: Record<string, string> = {
-          deepseek: "DEEPSEEK_API_KEY",
-          qwen: "QWEN_API_KEY",
-          claude: "ANTHROPIC_API_KEY",
-          gemini: "GEMINI_API_KEY",
-        };
         models.forEach((m) => {
-          const envKey = KEY_MAP[m];
-          if (envKey) {
-            const stored = localStorage.getItem(`arenaqa-${envKey}`);
+          const def = BUILTIN_MODELS.find((d) => d.id === m);
+          if (def) {
+            const stored = localStorage.getItem(getLocalStorageKey(def.storagePrefix, 'API_KEY'));
             if (stored) apiKeys[m] = stored;
           }
         });
@@ -112,17 +107,14 @@ export function useChat() {
           ? { apiKey: judgeKey, baseUrl: judgeBase, modelId: judgeModel }
           : null;
 
-        // 内置模型的 Base URL + Model ID（用户自定义覆盖）
-        const MODEL_STORAGE_PREFIX: Record<string, string> = {
-          deepseek: "DEEPSEEK", qwen: "QWEN", claude: "ANTHROPIC", gemini: "GEMINI",
-        };
+        // 内置模型的 Base URL + Model ID（用户自定义覆盖，从统一配置中心读取）
         const modelConfigs = models.map((m) => {
-          const prefix = MODEL_STORAGE_PREFIX[m];
-          if (!prefix) return { model: m };
+          const def = BUILTIN_MODELS.find((d) => d.id === m);
+          if (!def) return { model: m };
           return {
             model: m,
-            apiBase: localStorage.getItem(`arenaqa-${prefix}_BASE_URL`) || undefined,
-            modelId: localStorage.getItem(`arenaqa-${prefix}_MODEL_ID`) || undefined,
+            apiBase: localStorage.getItem(getLocalStorageKey(def.storagePrefix, 'BASE_URL')) || undefined,
+            modelId: localStorage.getItem(getLocalStorageKey(def.storagePrefix, 'MODEL_ID')) || undefined,
           };
         });
 

@@ -19,7 +19,7 @@ export class AnthropicProvider extends BaseProvider {
   constructor(config: AnthropicConfig) {
     super();
     const client = createAnthropic({ apiKey: config.apiKey });
-    this.model = client(config.modelId ?? 'claude-sonnet-4-20250514') as unknown as LanguageModel;
+    this.model = client(config.modelId ?? 'claude-sonnet-4-20250514') as LanguageModel;
   }
 
   getModel(): LanguageModel {
