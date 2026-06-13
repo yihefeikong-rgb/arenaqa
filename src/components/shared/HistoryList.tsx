@@ -6,6 +6,8 @@ import { useChatStore } from "@/stores/chat-store";
 interface HistoryItem {
   id: string;
   prompt: string;
+  title?: string;
+  roundCount: number;
   modelCount: number;
   createdAt: string;
 }
@@ -63,11 +65,15 @@ export function HistoryList() {
     try {
       const res = await fetch(`/api/history/${id}`);
       if (!res.ok) return;
-      if (seq !== loadDetailSeq.current) return; // 竞态：最新请求不是当前，放弃本次
+      if (seq !== loadDetailSeq.current) return;
       const data = await res.json();
 
+      const rounds = data.rounds ?? [];
+      const lastRound = rounds[rounds.length - 1];
+
+      // 从最后一轮构建 answers
       const answers: Record<string, { model: string; content: string; status: "done" | "error"; latencyMs?: number; error?: string }> = {};
-      data.answers?.forEach((a: { model: string; content: string; status: string; latencyMs?: number; error?: string }) => {
+      (lastRound?.answers ?? data.answers ?? []).forEach((a: { model: string; content: string; status: string; latencyMs?: number; error?: string }) => {
         answers[a.model] = {
           model: a.model,
           content: a.content,
@@ -79,11 +85,15 @@ export function HistoryList() {
 
       useChatStore.setState({
         answers,
-        scores: data.scores || [],
-        fusion: data.fusion || null,
-        lastPrompt: data.prompt,
+        scores: lastRound?.scores ?? data.scores ?? [],
+        fusion: lastRound?.fusion ?? data.fusion ?? null,
+        lastPrompt: lastRound?.prompt ?? data.prompt,
         status: "complete",
         currentHistoryId: id,
+        conversationId: id,
+        currentRound: (data.roundCount ?? 1) + 1,
+        rounds,
+        selectedRound: data.roundCount ?? 1,
       });
     } catch (e) {
       console.warn('[HistoryList] loadDetail error', e);
@@ -185,7 +195,7 @@ export function HistoryList() {
                     >
                       <div className="text-xs text-gray-800 dark:text-gray-200 truncate">{item.prompt.slice(0, 40)}</div>
                       <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                        {item.modelCount} 模型 · {new Date(item.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+                        {item.roundCount > 1 ? `${item.roundCount} 轮 · ` : ""}{item.modelCount} 模型 · {new Date(item.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   )}

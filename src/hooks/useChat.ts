@@ -213,9 +213,28 @@ export function useChat() {
             });
             if (saveRes.ok) {
               const { id } = await saveRes.json();
-              // 首次对话保存后记录 conversationId，后续追问复用
               if (!state.conversationId) {
                 useChatStore.setState({ conversationId: id });
+              }
+              // 更新 rounds 列表
+              const currentRounds = useChatStore.getState().rounds;
+              const rd = {
+                round: state.currentRound,
+                prompt: state.lastPrompt,
+                answers: answersArr.map((a) => ({
+                  ...a,
+                  status: a.error ? "error" as const : "done" as const,
+                })),
+                scores: state.scores,
+                fusion: state.fusion,
+              };
+              const exists = currentRounds.findIndex((r) => r.round === rd.round);
+              if (exists >= 0) {
+                const updated = [...currentRounds];
+                updated[exists] = rd;
+                useChatStore.setState({ rounds: updated });
+              } else {
+                useChatStore.setState({ rounds: [...currentRounds, rd] });
               }
             }
           } catch (e) { console.warn('[useChat] history save failed', e); }

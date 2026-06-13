@@ -13,6 +13,8 @@ export const useChatStore = create<ChatState>((set) => ({
   conversationId: null,
   messages: [],
   currentRound: 1,
+  rounds: [],
+  selectedRound: 1,
 
   selectModel: (model) => {
     set((state) => {
@@ -30,6 +32,8 @@ export const useChatStore = create<ChatState>((set) => ({
           conversationId: null,
           messages: [],
           currentRound: 1,
+          rounds: [],
+          selectedRound: 1,
         };
       }
       if (state.selectedModels.length >= 6) return state;
@@ -107,6 +111,30 @@ export const useChatStore = create<ChatState>((set) => ({
   setConversation: (id, round) =>
     set({ conversationId: id, currentRound: round }),
 
+  setRounds: (rounds) =>
+    set({ rounds }),
+
+  selectRound: (round) =>
+    set((state) => {
+      const rd = state.rounds.find((r) => r.round === round);
+      if (!rd) return { selectedRound: round };
+      return {
+        selectedRound: round,
+        answers: Object.fromEntries(
+          rd.answers.map((a) => [a.model, {
+            model: a.model,
+            content: a.content,
+            status: a.status as "done" | "error" | "streaming",
+            latencyMs: a.latencyMs,
+            error: a.error,
+          }])
+        ),
+        scores: rd.scores ?? [],
+        fusion: rd.fusion ?? null,
+        lastPrompt: rd.prompt,
+      };
+    }),
+
   reset: () =>
     set({
       status: "idle",
@@ -130,5 +158,7 @@ export const useChatStore = create<ChatState>((set) => ({
       conversationId: null,
       messages: [],
       currentRound: 1,
+      rounds: [],
+      selectedRound: 1,
     }),
 }));

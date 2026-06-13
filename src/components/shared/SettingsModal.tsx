@@ -50,6 +50,14 @@ export function SettingsModal({ open, onClose }: Props) {
 
   // 密码可见性切换
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  // 连接测试状态
+  const [testingModel, setTestingModel] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, "success" | "fail" | null>>({});
+  const [judgeTestResult, setJudgeTestResult] = useState<"success" | "fail" | null>(null);
+  const [judgeTesting, setJudgeTesting] = useState(false);
+  // 测试错误信息
+  const [testErrors, setTestErrors] = useState<Record<string, string | null>>({});
+  const [judgeTestError, setJudgeTestError] = useState<string | null>(null);
   const toggleKeyVisibility = (key: string) => {
     setVisibleKeys((prev) => {
       const next = new Set(prev);
@@ -96,6 +104,57 @@ export function SettingsModal({ open, onClose }: Props) {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     window.dispatchEvent(new Event("arenaqa-keys-updated"));
+  };
+
+  const testConnection = async (modelId: string, storagePrefix: string) => {
+    setTestingModel(storagePrefix);
+    setTestResults((prev) => ({ ...prev, [storagePrefix]: null }));
+    setTestErrors((prev) => ({ ...prev, [storagePrefix]: null }));
+    try {
+      const apiKey = keys[storagePrefix] || "";
+      const baseUrl = baseUrls[storagePrefix] || BUILTIN_MODELS.find((m) => m.id === modelId)?.defaultBaseUrl || "";
+      const model = modelIds[storagePrefix] || BUILTIN_MODELS.find((m) => m.id === modelId)?.defaultModelId || "";
+
+      if (!apiKey) { setTestResults((prev) => ({ ...prev, [storagePrefix]: "fail" })); setTestErrors((prev) => ({ ...prev, [storagePrefix]: "API Key 未配置" })); return; }
+
+      const res = await fetch("/api/test-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey, baseUrl, modelId: model }),
+      });
+      const data = await res.json();
+      setTestResults((prev) => ({ ...prev, [storagePrefix]: data.success ? "success" : "fail" }));
+      if (!data.success && data.error) {
+        setTestErrors((prev) => ({ ...prev, [storagePrefix]: data.error }));
+      }
+    } catch (err) {
+      setTestResults((prev) => ({ ...prev, [storagePrefix]: "fail" }));
+      setTestErrors((prev) => ({ ...prev, [storagePrefix]: err instanceof Error ? err.message : '网络错误' }));
+    } finally {
+      setTestingModel(null);
+    }
+  };
+
+  const testJudgeConnection = async () => {
+    setJudgeTesting(true);
+    setJudgeTestResult(null);
+    setJudgeTestError(null);
+    try {
+      if (!judgeApiKey) { setJudgeTestResult("fail"); setJudgeTestError("API Key 未配置"); setJudgeTesting(false); return; }
+      const res = await fetch("/api/test-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey: judgeApiKey, baseUrl: judgeBaseUrl, modelId: judgeModelId || "gpt-4o" }),
+      });
+      const data = await res.json();
+      setJudgeTestResult(data.success ? "success" : "fail");
+      if (!data.success && data.error) setJudgeTestError(data.error);
+    } catch (err) {
+      setJudgeTestResult("fail");
+      setJudgeTestError(err instanceof Error ? err.message : '网络错误');
+    } finally {
+      setJudgeTesting(false);
+    }
   };
 
   const handleSaveJudge = () => {
@@ -196,9 +255,50 @@ export function SettingsModal({ open, onClose }: Props) {
           {tab === "keys" && (
             <div className="space-y-3">
               <p className="text-xs text-gray-500 dark:text-gray-400">API Key 保存在本地浏览器中。可自定义每个模型的具体版本和 API 地址，避免调用到高价模型。</p>
-              {BUILTIN_MODELS.map((m) => (
+              {BUILTIN_MODELS.map((m) => {
+                const testResult = testResults[m.storagePrefix];
+                const isTesting = testingModel === m.storagePrefix;
+                const isOpenaiCompat = m.providerType === 'openai_compat';
+                return (
                 <div key={m.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-xl space-y-2">
-                  <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{m.displayName}</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-bold text-gray-800 dark:text-gray-200">{m.displayName}</div>
+                      {isOpenaiCompat ? (
+                        <button
+                          type="button"
+                          disabled={isTesting || !keys[m.storagePrefix]}
+                          onClick={() => testConnection(m.id, m.storagePrefix)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                            isTesting
+                              ? "border-gray-200 text-gray-400 cursor-wait"
+                              : testResult === "success"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                : testResult === "fail"
+                                  ? "border-red-200 bg-red-50 text-red-500 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400"
+                                  : "border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                        {isTesting ? (
+                          <><span className="w-2.5 h-2.5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" /> 测试中</>
+                        ) : testResult === "success" ? (
+                          <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> 连接正常</>
+                        ) : testResult === "fail" ? (
+                          <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> 连接失败</>
+                        ) : (
+                          "测试连接"
+                        )}
+                      </button>
+                      ) : (
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 italic">原生 API，不支持测试</span>
+                      )}
+                    </div>
+                    {testResult === "fail" && testErrors[m.storagePrefix] && (
+                      <div className="text-[9px] text-red-400 dark:text-red-400 truncate max-w-full" title={testErrors[m.storagePrefix] ?? ''}>
+                        {testErrors[m.storagePrefix]}
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-0.5">API Key</label>
                     <div className="relative">
@@ -244,7 +344,8 @@ export function SettingsModal({ open, onClose }: Props) {
                     />
                   </div>
                 </div>
-              ))}
+              );
+            })}
               <button onClick={handleSaveKeys} className={`w-full py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
                 {saved ? "已保存" : "保存内置模型配置"}
               </button>
@@ -298,9 +399,42 @@ export function SettingsModal({ open, onClose }: Props) {
                   onChange={(e) => setJudgeModelId(e.target.value)}
                 />
               </div>
-              <button onClick={handleSaveJudge} className={`w-full py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
-                {saved ? "已保存" : "保存裁判配置"}
-              </button>
+              <div className="flex gap-2 items-start">
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    disabled={judgeTesting || !judgeApiKey}
+                    onClick={testJudgeConnection}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                      judgeTesting
+                        ? "border-gray-200 text-gray-400 cursor-wait"
+                        : judgeTestResult === "success"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                          : judgeTestResult === "fail"
+                            ? "border-red-200 bg-red-50 text-red-500 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400"
+                            : "border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {judgeTesting ? (
+                      <><span className="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" /> 测试中</>
+                    ) : judgeTestResult === "success" ? (
+                      <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg> 连接正常</>
+                    ) : judgeTestResult === "fail" ? (
+                      <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg> 连接失败</>
+                    ) : (
+                      "测试连接"
+                    )}
+                  </button>
+                  {judgeTestResult === "fail" && judgeTestError && (
+                    <div className="text-[10px] text-red-400 dark:text-red-400 max-w-[200px] leading-tight" title={judgeTestError}>
+                      {judgeTestError}
+                    </div>
+                  )}
+                </div>
+                <button onClick={handleSaveJudge} className={`flex-1 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${saved ? "bg-emerald-500" : "bg-indigo-500 hover:bg-indigo-600"}`}>
+                  {saved ? "已保存" : "保存裁判配置"}
+                </button>
+              </div>
             </div>
           )}
 

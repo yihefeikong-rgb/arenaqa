@@ -12,6 +12,7 @@ import { SettingsModal } from "@/components/shared/SettingsModal";
 import { HistoryList } from "@/components/shared/HistoryList";
 import { PromptInputBar } from "@/components/PromptInputBar";
 import { MobileNav } from "@/components/MobileNav";
+import { RoundTimeline } from "@/components/arenaqa/RoundTimeline";
 
 const STATUS_CONFIG: Record<string, { label: string; dotColor: string; bg: string; border: string; textColor: string }> = {
   idle: { label: "就绪", dotColor: "bg-gray-400", bg: "bg-gray-100", border: "border-gray-200", textColor: "text-gray-600" },
@@ -157,6 +158,7 @@ export default function Home() {
         <section className={`min-h-0 flex-col min-w-0 animate-fade-in ${mobileTab === "chat" ? "flex" : "hidden"} md:flex`}>
           <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
             <div className="p-4 flex-1 overflow-y-auto">
+              <RoundTimeline />
               <AnswerGrid onAddModel={() => { setLeftTab("models"); setMobileTab("models"); }} />
             </div>
           </div>

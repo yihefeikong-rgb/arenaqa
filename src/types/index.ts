@@ -175,6 +175,8 @@ export interface ChatState {
   conversationId: string | null;
   messages: ChatMessage[];
   currentRound: number;
+  rounds: RoundGroup[];
+  selectedRound: number;
   selectModel: (model: string) => void;
   deselectModel: (model: string) => void;
   setStatus: (status: ChatStatus) => void;
@@ -187,6 +189,8 @@ export interface ChatState {
   stopModel: (model: string) => void;
   addUserMessage: (content: string) => void;
   setConversation: (id: string, round: number) => void;
+  setRounds: (rounds: RoundGroup[]) => void;
+  selectRound: (round: number) => void;
   reset: () => void;
   newChat: () => void;
 }

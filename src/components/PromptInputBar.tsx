@@ -21,7 +21,11 @@ export function PromptInputBar() {
 
   const selectedModels = useChatStore((s) => s.selectedModels);
   const status = useChatStore((s) => s.status);
+  const conversationId = useChatStore((s) => s.conversationId);
+  const rounds = useChatStore((s) => s.rounds);
   const { sendChat } = useChat();
+
+  const isFollowUp = !!conversationId && rounds.length > 0;
 
   // 检测 / 命令
   useEffect(() => {
@@ -172,6 +176,7 @@ export function PromptInputBar() {
     : status === "judging" ? "评分中..."
     : status === "fusing" ? "融合中..."
     : images.length > 0 ? `发起对比 (含${images.length}图)`
+    : isFollowUp ? "继续追问"
     : "发起对比";
 
   return (
@@ -187,7 +192,7 @@ export function PromptInputBar() {
             onPaste={handlePaste}
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
-            placeholder="输入你的问题... (Enter 发送, Shift+Enter 换行)"
+             placeholder={isFollowUp ? "继续追问这个话题..." : "输入你的问题... (Enter 发送, Shift+Enter 换行)"}
             maxLength={4000}
             rows={2}
           />
