@@ -6,7 +6,8 @@
 import type { LanguageModel } from 'ai';
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
-import { BaseProvider } from './base';
+import { BaseProvider, normalizeInput } from './base';
+import type { ChatMessage } from '@/types';
 
 interface OpenAICompatConfig {
   name: string;
@@ -33,10 +34,11 @@ export class OpenAICompatProvider extends BaseProvider {
     return this.model;
   }
 
-  async *stream(prompt: string, signal?: AbortSignal): AsyncIterable<string> {
+  async *stream(input: string | ChatMessage[], signal?: AbortSignal): AsyncIterable<string> {
+    const messages = normalizeInput(input);
     const result = streamText({
       model: this.model,
-      prompt,
+      messages,
       abortSignal: signal,
     });
 

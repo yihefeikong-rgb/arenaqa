@@ -13,7 +13,8 @@ import { GoogleProvider } from "./providers/google";
 import { sseManager } from "./sse-manager";
 import { runJudge } from "./judge";
 import { runFusion } from "./fusion";
-import type { ChatRequest } from "@/types";
+import { prisma } from "./db";
+import type { ChatRequest, ChatMessage } from "@/types";
 
 /** Promise 超时封装 */
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -31,6 +32,9 @@ const FUSION_TIMEOUT_MS = 60_000;
 interface RunningTask {
   taskId: string;
   prompt: string;
+  messages: ChatMessage[];
+  conversationId?: string;
+  round: number;
   models: string[];
   controllers: Map<string, AbortController>;
   answers: Map<string, string>;
@@ -112,10 +116,43 @@ class TaskManager {
     }
   }
 
+  /** 构建模型请求的消息数组 */
+  private async buildMessages(
+    conversationId: string | undefined,
+    prompt: string,
+    round: number | undefined
+  ): Promise<ChatMessage[]> {
+    // 第一轮：直接返回用户消息
+    if (!conversationId || !round || round <= 1) {
+      return [{ role: 'user', content: prompt }];
+    }
+
+    // 后续轮次：加载上一轮 Fusion 作为上下文
+    try {
+      const prevRound = round - 1;
+      const prevFusion = await prisma.fusion.findUnique({
+        where: { conversationId_round: { conversationId, round: prevRound } },
+      });
+
+      const messages: ChatMessage[] = [];
+      if (prevFusion) {
+        messages.push({
+          role: 'assistant',
+          content: `【上一轮总结】\n${prevFusion.synthesized}`,
+        });
+      }
+      messages.push({ role: 'user', content: prompt });
+      return messages;
+    } catch {
+      return [{ role: 'user', content: prompt }];
+    }
+  }
+
   async startTask(req: ChatRequest): Promise<string> {
     const taskId = `task_${randomUUID().slice(0, 8)}`;
     console.log(`[startTask] taskId=${taskId} models=${req.models.join(',')} providers=${this.providers.size}`);
     const startTime = Date.now();
+    const currentRound = req.round ?? 1;
 
     // 暂存本次请求的自定义模型和裁判配置
     this._customModels = req.customModels || [];
@@ -153,9 +190,15 @@ class TaskManager {
       }
     }
 
+    // 构建消息数组（基于 conversationId + round 加载上下文）
+    const messages = await this.buildMessages(req.conversationId, req.prompt, currentRound);
+
     const task: RunningTask = {
       taskId,
       prompt: req.prompt,
+      messages,
+      conversationId: req.conversationId,
+      round: currentRound,
       models: req.models,
       controllers: new Map(),
       answers: new Map(),
@@ -198,7 +241,7 @@ class TaskManager {
 
         console.log(`[task] running judge with ${answersArr.length} completed models`);
         const judgeResult = await withTimeout(
-          runJudge(taskId, req.prompt, answersArr, this._judgeConfig),
+          runJudge(taskId, req.prompt, answersArr, this._judgeConfig, currentRound),
           JUDGE_TIMEOUT_MS,
           'Judge'
         );
@@ -210,7 +253,7 @@ class TaskManager {
           const fusionKey = this._judgeConfig?.apiKey || this._requestNimKey || process.env.NIM_API_KEY || process.env.DEEPSEEK_API_KEY;
           const fusionBase = this._judgeConfig?.baseUrl || undefined;
           const fusionResult = await withTimeout(
-            runFusion(taskId, req.prompt, answersArr, fusionKey, fusionBase),
+            runFusion(taskId, req.prompt, answersArr, fusionKey, fusionBase, currentRound),
             FUSION_TIMEOUT_MS,
             'Fusion'
           );
@@ -243,7 +286,7 @@ class TaskManager {
               .filter((m) => task.completedModels.has(m))
               .map((m) => ({ model: m, content: task.answers.get(m) ?? "" }));
             const judgeResult = await withTimeout(
-              runJudge(taskId, req.prompt, answersArr, null), // null → NIM fallback
+              runJudge(taskId, req.prompt, answersArr, null, currentRound), // null → NIM fallback
               JUDGE_TIMEOUT_MS,
               'Judge retry'
             );
@@ -253,7 +296,7 @@ class TaskManager {
             try {
               const fusionKey = process.env.NIM_API_KEY || process.env.DEEPSEEK_API_KEY;
               const fusionResult = await withTimeout(
-                runFusion(taskId, req.prompt, answersArr, fusionKey),
+                runFusion(taskId, req.prompt, answersArr, fusionKey, undefined, currentRound),
                 FUSION_TIMEOUT_MS,
                 'Fusion retry'
               );
@@ -305,7 +348,7 @@ class TaskManager {
     const modelStart = Date.now();
 
     try {
-      for await (const chunk of provider.stream(task.prompt, controller.signal)) {
+      for await (const chunk of provider.stream(task.messages, controller.signal)) {
         accumulated += chunk;
         sseManager.publish(task.taskId, "chunk", {
           model: modelName,
@@ -373,12 +416,12 @@ class TaskManager {
 
     if (completedArr.length > 0) {
       try {
-        const judgeResult = await runJudge(taskId, task.prompt, completedArr, this._judgeConfig);
+        const judgeResult = await runJudge(taskId, task.prompt, completedArr, this._judgeConfig, task.round);
         sseManager.publish(taskId, "judge", judgeResult);
       } catch { console.warn('[task] finalize judge failed'); }
 
       try {
-        const fusionResult = await runFusion(taskId, task.prompt, completedArr);
+        const fusionResult = await runFusion(taskId, task.prompt, completedArr, undefined, undefined, task.round);
         sseManager.publish(taskId, "fusion", fusionResult);
       } catch { console.warn('[task] finalize fusion failed'); }
     }

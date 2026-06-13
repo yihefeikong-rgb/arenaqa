@@ -1,5 +1,5 @@
 // ============================================================
-// Prisma Schema — ArenaQA
+// Prisma Schema — ArenaQA v2 (Multi-Round)
 // SQLite 数据库
 // ============================================================
 
@@ -13,16 +13,20 @@ datasource db {
 }
 
 model Conversation {
-  id        String   @id @default(cuid())
-  prompt    String
+  id         String   @id @default(cuid())
+  prompt     String              // 首轮用户问题（不可变）
+  title      String?             // 历史列表显示标题（自动生成或用户修改）
+  roundCount Int      @default(1) // 当前对话总轮数
+  prompts    String   @default("[]") // JSON: string[] 每轮用户问题
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   answers Answer[]
-  judge   Judge?
-  fusion  Fusion?
+  judges  Judge[]
+  fusions Fusion[]
 
   @@index([createdAt])
-  @@index([prompt])
 }
 
 model Answer {
@@ -32,18 +36,25 @@ model Answer {
   status         String   // streaming | done | error
   latencyMs      Int?
   error          String?
+  round          Int      @default(1) // 所属轮次
   conversationId String
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId, round])
 }
 
 model Judge {
   id             String @id @default(cuid())
   scores         String // JSON: Score[]
   raw            String // 裁判模型的原始输出
-  conversationId String @unique
+  round          Int    @default(1) // 所属轮次
+  conversationId String
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, round])
+  @@index([conversationId])
 }
 
 model Fusion {
@@ -51,9 +62,13 @@ model Fusion {
   consensus      String // JSON: string[]
   divergences    String // JSON: Divergence[]
   synthesized    String // Markdown
-  conversationId String @unique
+  round          Int    @default(1) // 所属轮次
+  conversationId String
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, round])
+  @@index([conversationId])
 }
 
 model Feedback {

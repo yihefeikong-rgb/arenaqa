@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { ChatState } from "@/types";
 
-export const useChatStore = create<ChatState>((set, get) => ({
+export const useChatStore = create<ChatState>((set) => ({
   status: "idle",
   selectedModels: [],
   answers: {},
@@ -10,6 +10,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   taskId: null,
   lastPrompt: "",
   currentHistoryId: null,
+  conversationId: null,
+  messages: [],
+  currentRound: 1,
 
   selectModel: (model) => {
     set((state) => {
@@ -24,6 +27,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
           taskId: null,
           lastPrompt: "",
           currentHistoryId: null,
+          conversationId: null,
+          messages: [],
+          currentRound: 1,
         };
       }
       if (state.selectedModels.length >= 6) return state;
@@ -92,6 +98,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       },
     })),
 
+  addUserMessage: (content) =>
+    set((state) => ({
+      messages: [...state.messages, { role: "user", content }],
+      lastPrompt: content,
+    })),
+
+  setConversation: (id, round) =>
+    set({ conversationId: id, currentRound: round }),
+
   reset: () =>
     set({
       status: "idle",
@@ -112,5 +127,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       taskId: null,
       lastPrompt: "",
       currentHistoryId: null,
+      conversationId: null,
+      messages: [],
+      currentRound: 1,
     }),
 }));

@@ -5,7 +5,8 @@
 import type { LanguageModel } from 'ai';
 import { streamText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { BaseProvider } from './base';
+import { BaseProvider, normalizeInput } from './base';
+import type { ChatMessage } from '@/types';
 
 interface AnthropicConfig {
   apiKey: string;
@@ -26,10 +27,11 @@ export class AnthropicProvider extends BaseProvider {
     return this.model;
   }
 
-  async *stream(prompt: string, signal?: AbortSignal): AsyncIterable<string> {
+  async *stream(input: string | ChatMessage[], signal?: AbortSignal): AsyncIterable<string> {
+    const messages = normalizeInput(input);
     const result = streamText({
       model: this.model,
-      prompt,
+      messages,
       abortSignal: signal,
     });
 

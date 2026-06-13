@@ -18,6 +18,7 @@ export async function runFusion(
   answers: Array<{ model: string; content: string }>,
   apiKeyOverride?: string,
   baseUrlOverride?: string,
+  _round?: number
 ): Promise<FusionEvent> {
   // API Key 优先级：参数传入 > DEEPSEEK_API_KEY > OPENAI_API_KEY > NIM_API_KEY
   let apiKey = apiKeyOverride || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;

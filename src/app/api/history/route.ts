@@ -10,40 +10,76 @@ import type { Score, FusionResult } from "@/types";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, answers, scores, fusion } = body as {
+    const { prompt, answers, scores, fusion, conversationId, round } = body as {
       prompt: string;
       answers: { model: string; content: string; latencyMs?: number; error?: string }[];
       scores: Score[];
       fusion: FusionResult | null;
+      conversationId?: string;
+      round?: number;
     };
 
-    // 全部模型均失败时，answers 为空内容，仍然保存历史
+    const currentRound = round ?? 1;
+
+    // 辅助函数：构建 answers create 数组
+    const buildAnswersCreate = () => {
+      if (answers.length === 0) {
+        return [{ model: "unknown", content: "", status: "error", error: "No answers recorded", round: currentRound }];
+      }
+      const valid = answers.filter((a) => a.model);
+      if (valid.length === 0) {
+        return [{ model: "unknown", content: "", status: "error", error: "All answers missing model field", round: currentRound }];
+      }
+      return valid.map((a) => ({
+        model: a.model!,
+        content: a.content || "",
+        status: a.error ? "error" : "done",
+        latencyMs: a.latencyMs ?? null,
+        error: a.error ?? null,
+        round: currentRound,
+      }));
+    };
+
+    // 如果提供了 conversationId，追加新轮次到已有对话
+    if (conversationId) {
+      // 读取现有 prompts 并追加新 prompt
+      const existing = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        select: { prompts: true },
+      });
+      const existingPrompts: string[] = existing ? JSON.parse(existing.prompts) : [];
+      existingPrompts.push(prompt);
+
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: {
+          roundCount: currentRound,
+          prompts: JSON.stringify(existingPrompts),
+          answers: { create: buildAnswersCreate() },
+          judges: scores && scores.length > 0
+            ? { create: { scores: JSON.stringify(scores), raw: "", round: currentRound } }
+            : undefined,
+          fusions: fusion
+            ? { create: { consensus: JSON.stringify(fusion.consensus), divergences: JSON.stringify(fusion.divergences), synthesized: fusion.synthesized, round: currentRound } }
+            : undefined,
+        },
+      });
+      return NextResponse.json({ success: true, id: conversationId });
+    }
+
+    // 新对话
     const conversation = await prisma.conversation.create({
       data: {
         prompt,
-        answers: {
-          create: (() => {
-            if (answers.length === 0) {
-              return [{ model: "unknown", content: "", status: "error", error: "No answers recorded" }];
-            }
-            const valid = answers.filter((a) => a.model);
-            if (valid.length === 0) {
-              return [{ model: "unknown", content: "", status: "error", error: "All answers missing model field" }];
-            }
-            return valid.map((a) => ({
-              model: a.model!,
-              content: a.content || "",
-              status: a.error ? "error" : "done",
-              latencyMs: a.latencyMs ?? null,
-              error: a.error ?? null,
-            }));
-          })(),
-        },
-        judge: scores && scores.length > 0
-          ? { create: { scores: JSON.stringify(scores), raw: "" } }
+        title: prompt.slice(0, 30),
+        roundCount: currentRound,
+        prompts: JSON.stringify([prompt]),
+        answers: { create: buildAnswersCreate() },
+        judges: scores && scores.length > 0
+          ? { create: { scores: JSON.stringify(scores), raw: "", round: currentRound } }
           : undefined,
-        fusion: fusion
-          ? { create: { consensus: JSON.stringify(fusion.consensus), divergences: JSON.stringify(fusion.divergences), synthesized: fusion.synthesized } }
+        fusions: fusion
+          ? { create: { consensus: JSON.stringify(fusion.consensus), divergences: JSON.stringify(fusion.divergences), synthesized: fusion.synthesized, round: currentRound } }
           : undefined,
       },
       include: { answers: true },
@@ -75,7 +111,10 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          answers: { select: { model: true, status: true } },
+          answers: {
+            select: { model: true, status: true, round: true },
+            where: { round: 1 },
+          },
         },
       }),
       prisma.conversation.count({ where }),
@@ -84,6 +123,8 @@ export async function GET(req: NextRequest) {
     const list = items.map((c) => ({
       id: c.id,
       prompt: c.prompt,
+      title: c.title,
+      roundCount: c.roundCount,
       modelCount: c.answers.length,
       createdAt: c.createdAt.toISOString(),
     }));

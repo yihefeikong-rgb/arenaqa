@@ -14,6 +14,13 @@ export interface ModelConfig {
   description: string;
 }
 
+// --- 多轮对话消息 ---
+
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
 // --- 问答请求/响应（后端 API） ---
 
 export interface CustomModelConfig {
@@ -42,6 +49,33 @@ export interface ChatRequest {
   modelConfigs?: ModelRuntimeConfig[];
   customModels?: CustomModelConfig[];
   judgeConfig?: JudgeConfig | null;
+  conversationId?: string;  // 继续对话时传入
+  round?: number;            // 当前请求是第几轮
+}
+
+// --- 历史 API 响应（按轮分组） ---
+
+export interface RoundGroup {
+  round: number;
+  prompt: string;
+  answers: Array<{
+    model: string;
+    content: string;
+    status: string;
+    latencyMs?: number;
+    error?: string;
+  }>;
+  scores?: Score[];
+  fusion?: FusionResult | null;
+}
+
+export interface ConversationDetail {
+  id: string;
+  prompt: string;
+  title?: string;
+  roundCount: number;
+  createdAt: string;
+  rounds: RoundGroup[];
 }
 
 export interface TaskCreated {
@@ -137,6 +171,10 @@ export interface ChatState {
   taskId: string | null;
   lastPrompt: string;
   currentHistoryId: string | null;
+  // 多轮支持
+  conversationId: string | null;
+  messages: ChatMessage[];
+  currentRound: number;
   selectModel: (model: string) => void;
   deselectModel: (model: string) => void;
   setStatus: (status: ChatStatus) => void;
@@ -147,6 +185,8 @@ export interface ChatState {
   setFusion: (fusion: FusionResult) => void;
   setTaskId: (taskId: string) => void;
   stopModel: (model: string) => void;
+  addUserMessage: (content: string) => void;
+  setConversation: (id: string, round: number) => void;
   reset: () => void;
   newChat: () => void;
 }

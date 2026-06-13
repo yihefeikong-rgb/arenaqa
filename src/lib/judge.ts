@@ -22,7 +22,8 @@ export async function runJudge(
   _taskId: string,
   prompt: string,
   answers: Array<{ model: string; content: string }>,
-  judgeConfig?: JudgeConfig | null
+  judgeConfig?: JudgeConfig | null,
+  _round?: number
 ): Promise<JudgeEvent> {
   // 优先级：前端配置 > DEEPSEEK_API_KEY（官方快） > OPENAI_API_KEY > NIM_API_KEY（慢）
   let apiKey = judgeConfig?.apiKey || '';

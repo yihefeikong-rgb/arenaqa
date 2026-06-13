@@ -4,7 +4,8 @@
 // 部分模型（如 Kimi）流式格式不标准，回退为非流式请求
 // ============================================================
 
-import { BaseProvider } from './base';
+import { BaseProvider, normalizeInput } from './base';
+import type { ChatMessage } from '@/types';
 
 const NIM_CHAT_ENDPOINT = 'https://integrate.api.nvidia.com/v1/chat/completions';
 
@@ -30,20 +31,21 @@ export class NimProvider extends BaseProvider {
     this.streaming = config.streaming ?? true;
   }
 
-  async *stream(prompt: string, signal?: AbortSignal): AsyncIterable<string> {
+  async *stream(input: string | ChatMessage[], signal?: AbortSignal): AsyncIterable<string> {
+    const messages = normalizeInput(input);
     if (!this.streaming) {
       // 非流式：一次性获取完整结果
-      const text = await this.nonStreamRequest(prompt, signal);
+      const text = await this.nonStreamRequest(messages, signal);
       yield text;
       return;
     }
 
     // 流式：手动解析 SSE
-    yield* this.streamRequest(prompt, signal);
+    yield* this.streamRequest(messages, signal);
   }
 
   /** 非流式请求（一次性返回完整内容） */
-  private async nonStreamRequest(prompt: string, signal?: AbortSignal): Promise<string> {
+  private async nonStreamRequest(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
     const res = await fetch(NIM_CHAT_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -52,7 +54,7 @@ export class NimProvider extends BaseProvider {
       },
       body: JSON.stringify({
         model: this.modelId,
-        messages: [{ role: 'user', content: prompt }],
+        messages,
         max_tokens: 4096,
         temperature: 0.7,
         stream: false,
@@ -70,7 +72,7 @@ export class NimProvider extends BaseProvider {
   }
 
   /** 流式请求（手动解析 SSE） */
-  private async *streamRequest(prompt: string, signal?: AbortSignal): AsyncIterable<string> {
+  private async *streamRequest(messages: ChatMessage[], signal?: AbortSignal): AsyncIterable<string> {
     const res = await fetch(NIM_CHAT_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -79,7 +81,7 @@ export class NimProvider extends BaseProvider {
       },
       body: JSON.stringify({
         model: this.modelId,
-        messages: [{ role: 'user', content: prompt }],
+        messages,
         max_tokens: 4096,
         temperature: 0.7,
         stream: true,
