@@ -40,15 +40,78 @@ export async function POST(req: NextRequest) {
       }));
     };
 
+    // 构建 Message 数组（双写）
+    const buildMessagesCreate = (convId: string, seqStart: number) => {
+      const msgs: Array<{
+        conversationId: string;
+        role: string;
+        messageType: string;
+        content: string;
+        round: number;
+        model?: string;
+        sequence: number;
+        metadata: string;
+      }> = [];
+      let seq = seqStart;
+
+      // 1. 用户消息
+      msgs.push({
+        conversationId: convId,
+        role: "user",
+        messageType: "user_input",
+        content: prompt,
+        round: currentRound,
+        sequence: seq++,
+        metadata: "{}",
+      });
+
+      // 2. 各模型回答
+      (answers || []).filter((a) => a.model).forEach((a) => {
+        msgs.push({
+          conversationId: convId,
+          role: "assistant",
+          messageType: "model_answer",
+          content: a.content || "",
+          round: currentRound,
+          model: a.model!,
+          sequence: seq++,
+          metadata: JSON.stringify({ latencyMs: a.latencyMs }),
+        });
+      });
+
+      // 3. Fusion 摘要
+      if (fusion) {
+        msgs.push({
+          conversationId: convId,
+          role: "assistant",
+          messageType: "fusion_summary",
+          content: fusion.synthesized || "",
+          round: currentRound,
+          model: "fusion",
+          sequence: seq++,
+          metadata: scores ? JSON.stringify({ scores }) : "{}",
+        });
+      }
+
+      return msgs;
+    };
+
     // 如果提供了 conversationId，追加新轮次到已有对话
     if (conversationId) {
-      // 读取现有 prompts 并追加新 prompt
       const existing = await prisma.conversation.findUnique({
         where: { id: conversationId },
         select: { prompts: true },
       });
       const existingPrompts: string[] = existing ? JSON.parse(existing.prompts) : [];
       existingPrompts.push(prompt);
+
+      // 获取当前最大 sequence
+      const maxSeqMsg = await prisma.message.findFirst({
+        where: { conversationId },
+        orderBy: { sequence: "desc" },
+        select: { sequence: true },
+      });
+      const seqStart = (maxSeqMsg?.sequence ?? 0) + 1;
 
       await prisma.conversation.update({
         where: { id: conversationId },
@@ -62,6 +125,7 @@ export async function POST(req: NextRequest) {
           fusions: fusion
             ? { create: { consensus: JSON.stringify(fusion.consensus), divergences: JSON.stringify(fusion.divergences), synthesized: fusion.synthesized, round: currentRound } }
             : undefined,
+          messages: { create: buildMessagesCreate(conversationId, seqStart) },
         },
       });
       return NextResponse.json({ success: true, id: conversationId });
@@ -81,8 +145,11 @@ export async function POST(req: NextRequest) {
         fusions: fusion
           ? { create: { consensus: JSON.stringify(fusion.consensus), divergences: JSON.stringify(fusion.divergences), synthesized: fusion.synthesized, round: currentRound } }
           : undefined,
+        messages: {
+          create: buildMessagesCreate("", 1).map((m) => ({ ...m, conversationId: undefined })),
+        },
       },
-      include: { answers: true },
+      include: { answers: true, messages: true },
     });
 
     return NextResponse.json({ success: true, id: conversation.id });
@@ -139,6 +206,7 @@ export async function GET(req: NextRequest) {
 // ---- 清空全部 ----
 export async function DELETE() {
   try {
+    await prisma.message.deleteMany();
     await prisma.fusion.deleteMany();
     await prisma.judge.deleteMany();
     await prisma.answer.deleteMany();

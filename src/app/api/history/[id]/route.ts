@@ -109,6 +109,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    await prisma.message.deleteMany({ where: { conversationId: id } });
+    await prisma.fusion.deleteMany({ where: { conversationId: id } });
+    await prisma.judge.deleteMany({ where: { conversationId: id } });
+    await prisma.answer.deleteMany({ where: { conversationId: id } });
     await prisma.conversation.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {

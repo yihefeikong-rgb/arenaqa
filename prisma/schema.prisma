@@ -18,6 +18,8 @@ model Conversation {
   title      String?             // 历史列表显示标题（自动生成或用户修改）
   roundCount Int      @default(1) // 当前对话总轮数
   prompts    String   @default("[]") // JSON: string[] 每轮用户问题
+  summary    String?             // P8: 累进摘要文本
+  summaryRound Int?              // P8: 摘要覆盖到的最新轮次
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -25,6 +27,7 @@ model Conversation {
   answers Answer[]
   judges  Judge[]
   fusions Fusion[]
+  messages Message[]
 
   @@index([createdAt])
 }
@@ -69,6 +72,28 @@ model Fusion {
 
   @@unique([conversationId, round])
   @@index([conversationId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // user | assistant | system
+  messageType    String   // user_input | model_answer | fusion_summary | system_prompt
+  content        String
+  round          Int      @default(1)
+  model          String?  // 仅 messageType=model_answer 时有值
+  sequence       Int      // 对话内全局递增序号
+  parentId       String?  // Phase 3+ fork 预留
+  metadata       String   @default("{}") // JSON: token 数等元信息
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  parent        Message?     @relation("ForkChain", fields: [parentId], references: [id])
+  children      Message[]    @relation("ForkChain")
+
+  @@index([conversationId, round, role])
+  @@index([conversationId, sequence])
+  @@index([parentId])
 }
 
 model Feedback {
